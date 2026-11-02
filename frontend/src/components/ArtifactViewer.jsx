@@ -1,16 +1,9 @@
-// Artifact viewer (TASK 07). Renders the `artifacts` list from a RunResult by
-// inferring kind from the filename/extension:
-//   .png/.jpg/.jpeg/.gif/.webp/.svg -> <img>
-//   .html / .htm                    -> iframe (plotly/notebook-style charts)
-//   .json                           -> table if array of objects, else pretty JSON
-//   .csv                            -> parsed table
-//   .diff/.patch                    -> colored diff
-//   everything else (logs, code)    -> monospace block
-// Every artifact also gets a download link.
+// Artifact viewer. Renders artifacts by inferred kind: image, html, json, csv,
+// diff, or plain text — each with a download link.
 
 import { useEffect, useState } from 'react'
 import { artifactUrl, fetchArtifactText } from '../api.js'
-import { Card, CardHeader, CodeBlock, EmptyState, ErrorState, Spinner } from './ui.jsx'
+import { Panel, PanelHeader, CodeBlock, EmptyState, ErrorState, Spinner } from './ui.jsx'
 
 const IMAGE_RE = /\.(png|jpe?g|gif|webp|svg|bmp)$/i
 const HTML_RE = /\.(html?)$/i
@@ -69,32 +62,28 @@ function parseCsv(text) {
 
 function DataTable({ rows }) {
   if (rows.length === 0) {
-    return <p className="text-sm text-slate-500">Empty data file.</p>
+    return <p className="text-sm text-ink-3">Empty data file.</p>
   }
   const headers = rows[0]
   const body = rows.slice(1)
   const maxRows = 50
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-slate-200 text-sm">
+    <div className="overflow-x-auto rounded-xl border border-line">
+      <table className="min-w-full text-sm">
         <thead>
-          <tr className="bg-slate-50 text-left">
+          <tr className="bg-surface-2 text-left">
             {headers.map((h, i) => (
-              <th
-                key={i}
-                scope="col"
-                className="px-3 py-2 font-medium text-slate-600"
-              >
+              <th key={i} scope="col" className="px-3 py-2 font-semibold text-ink-2">
                 {h}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-line">
           {body.slice(0, maxRows).map((row, r) => (
             <tr key={r}>
               {row.map((cell, c) => (
-                <td key={c} className="px-3 py-2 text-slate-700">
+                <td key={c} className="px-3 py-2 text-ink-2">
                   {cell}
                 </td>
               ))}
@@ -103,7 +92,7 @@ function DataTable({ rows }) {
         </tbody>
       </table>
       {body.length > maxRows ? (
-        <p className="px-3 py-2 text-xs text-slate-400">
+        <p className="px-3 py-2 text-xs text-ink-3">
           Showing first {maxRows} of {body.length} rows.
         </p>
       ) : null}
@@ -121,22 +110,22 @@ function JsonView({ text }) {
   if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object' && parsed[0] !== null) {
     const headers = Array.from(new Set(parsed.flatMap((o) => Object.keys(o))))
     return (
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
+      <div className="overflow-x-auto rounded-xl border border-line">
+        <table className="min-w-full text-sm">
           <thead>
-            <tr className="bg-slate-50 text-left">
+            <tr className="bg-surface-2 text-left">
               {headers.map((h) => (
-                <th key={h} scope="col" className="px-3 py-2 font-medium text-slate-600">
+                <th key={h} scope="col" className="px-3 py-2 font-semibold text-ink-2">
                   {h}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-line">
             {parsed.map((row, r) => (
               <tr key={r}>
                 {headers.map((h) => (
-                  <td key={h} className="px-3 py-2 text-slate-700">
+                  <td key={h} className="px-3 py-2 text-ink-2">
                     {typeof row[h] === 'object' && row[h] !== null
                       ? JSON.stringify(row[h])
                       : String(row[h] ?? '')}
@@ -154,13 +143,13 @@ function JsonView({ text }) {
 
 function DiffView({ text }) {
   return (
-    <div className="overflow-x-auto rounded-md border border-slate-800">
-      <pre className="bg-slate-950 px-4 py-3 font-mono text-xs leading-relaxed">
+    <div className="overflow-x-auto rounded-xl border border-code-bg">
+      <pre className="bg-code-bg px-4 py-3 font-mono text-xs leading-relaxed">
         {text.split('\n').map((line, i) => {
-          let cls = 'text-slate-300'
-          if (line.startsWith('+')) cls = 'bg-emerald-950/40 text-emerald-300'
-          else if (line.startsWith('-')) cls = 'bg-rose-950/40 text-rose-300'
-          else if (line.startsWith('@@')) cls = 'bg-blue-950/40 text-blue-300'
+          let cls = 'text-code-ink'
+          if (line.startsWith('+')) cls = 'bg-ok/15 text-ok'
+          else if (line.startsWith('-')) cls = 'bg-danger/15 text-danger'
+          else if (line.startsWith('@@')) cls = 'bg-accent/15 text-accent'
           return (
             <span key={i} className={`block ${cls}`}>
               {line || ' '}
@@ -203,7 +192,7 @@ function ArtifactPanel({ taskId, name }) {
         <img
           src={url}
           alt={`Artifact: ${name}`}
-          className="max-h-96 w-full rounded-md border border-slate-200 object-contain bg-slate-50"
+          className="max-h-96 w-full rounded-xl border border-line object-contain bg-surface-2"
         />
       </a>
     )
@@ -212,7 +201,7 @@ function ArtifactPanel({ taskId, name }) {
       <iframe
         src={url}
         title={`Artifact: ${name}`}
-        className="h-96 w-full rounded-md border border-slate-200 bg-white"
+        className="h-96 w-full rounded-xl border border-line bg-white"
         sandbox="allow-scripts allow-same-origin"
       />
     )
@@ -231,40 +220,38 @@ function ArtifactPanel({ taskId, name }) {
   }
 
   return (
-    <Card>
-      <CardHeader
-        title={name}
+    <Panel>
+      <PanelHeader
+        title={<span className="font-mono text-sm">{name}</span>}
         subtitle={`${kind} artifact`}
         actions={
-          <a
-            href={url}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500"
-          >
+          <a href={url} target="_blank" rel="noreferrer" className="btn btn-secondary min-h-0 px-2.5 py-1.5 text-xs">
             Download
           </a>
         }
       />
-      <div className="px-5 py-4">{body}</div>
-    </Card>
+      <div className="px-4 py-4 sm:px-5">{body}</div>
+    </Panel>
   )
 }
 
 export default function ArtifactViewer({ taskId, artifacts = [] }) {
   if (artifacts.length === 0) {
     return (
-      <Card>
-        <CardHeader title="Artifacts" subtitle="Files produced by the sandbox" />
+      <Panel>
+        <PanelHeader title="Artifacts" subtitle="Files produced by the sandbox" />
         <EmptyState title="No artifacts yet">
           Artifacts appear after the sandbox run completes.
         </EmptyState>
-      </Card>
+      </Panel>
     )
   }
   return (
     <div className="space-y-4">
-      <h2 className="text-base font-semibold text-slate-900">Artifacts</h2>
+      <div>
+        <h2 className="text-base font-bold tracking-tight">Artifacts</h2>
+        <p className="text-sm text-ink-3">Files produced by the sandbox run.</p>
+      </div>
       {artifacts.map((name) => (
         <ArtifactPanel key={name} taskId={taskId} name={name} />
       ))}

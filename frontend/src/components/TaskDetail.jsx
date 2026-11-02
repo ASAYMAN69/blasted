@@ -1,5 +1,4 @@
-// Task detail page (TASK 07): GET /api/tasks/{id} for the current result, then
-// TaskProgress consumes the SSE stream; artifacts + containment card render below.
+// Task detail page: current result + live SSE progress + artifacts + containment card.
 
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -7,7 +6,7 @@ import { getTask } from '../api.js'
 import ArtifactViewer from './ArtifactViewer.jsx'
 import ContainmentCard from './ContainmentCard.jsx'
 import TaskProgress from './TaskProgress.jsx'
-import { Card, EmptyState, ErrorState, Spinner } from './ui.jsx'
+import { Panel, EmptyState, ErrorState, Spinner } from './ui.jsx'
 
 function taskMeta(id) {
   try {
@@ -48,11 +47,11 @@ export default function TaskDetail() {
 
   if (loading) {
     return (
-      <Card>
-        <div className="px-5 py-10 text-center">
+      <Panel>
+        <div className="flex items-center justify-center px-5 py-12">
           <Spinner label="Loading task…" />
         </div>
-      </Card>
+      </Panel>
     )
   }
 
@@ -60,46 +59,42 @@ export default function TaskDetail() {
     return (
       <div className="space-y-4">
         <ErrorState message={error} onRetry={load} />
-        <p className="text-sm text-slate-500">
-          <Link to="/" className="font-medium text-slate-900 underline underline-offset-2">
-            Back to new task
-          </Link>
-        </p>
+        <Link to="/" className="btn btn-secondary w-full sm:w-auto">
+          ← Back to new task
+        </Link>
       </div>
     )
   }
 
   if (!initial) {
     return (
-      <Card>
+      <Panel>
         <EmptyState title="Task not found">
           This task does not exist or has not been persisted.
         </EmptyState>
-      </Card>
+      </Panel>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-          <div>
-            <h2 className="text-base font-semibold text-slate-900">
-              Task {meta.mode ? `${meta.mode} · ` : ''}
-              <span className="font-mono">{id.slice(0, 8)}</span>
-            </h2>
-            <p className="mt-0.5 text-sm text-slate-500">
-              {meta.created_at ? `Submitted ${new Date(meta.created_at).toLocaleString()}` : 'Submitted just now'}
-            </p>
-          </div>
-          <Link
-            to="/"
-            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500"
-          >
-            ← New task
-          </Link>
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-lg font-bold tracking-tight">
+            Task {meta.mode ? `${meta.mode}` : ''}
+            <span className="ml-2 font-mono text-sm font-medium text-ink-3">{id.slice(0, 8)}</span>
+          </h1>
+          <p className="mt-0.5 text-sm text-ink-3">
+            {meta.created_at ? `Submitted ${new Date(meta.created_at).toLocaleString()}` : 'Submitted just now'}
+          </p>
         </div>
-      </Card>
+        <Link
+          to="/"
+          className="btn btn-secondary hidden flex-none text-sm sm:inline-flex"
+        >
+          ← New task
+        </Link>
+      </div>
 
       <TaskProgress taskId={id} initial={initial} onTerminal={handleTerminal} />
 

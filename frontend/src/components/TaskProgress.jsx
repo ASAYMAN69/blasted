@@ -1,10 +1,9 @@
-// Live task progress via SSE (TASK 07). Consumes /api/tasks/{id}/events and
-// renders status + attempt counter + latest summary. Closes the stream when a
-// terminal state (passed/failed) arrives or on unmount.
+// Live task progress via SSE. Consumes /api/tasks/{id}/events and renders
+// status + attempt counter + latest summary. Closes stream on terminal state.
 
 import { useEffect, useRef, useState } from 'react'
 import { taskEvents } from '../api.js'
-import { Card, CardHeader, ErrorState, Spinner, StatusBadge } from './ui.jsx'
+import { Panel, PanelHeader, ErrorState, Spinner, StatusBadge, CodeBlock } from './ui.jsx'
 
 const TERMINAL = new Set(['passed', 'failed'])
 
@@ -49,15 +48,17 @@ export default function TaskProgress({ taskId, initial, onTerminal }) {
   const summaries = events.map((e) => e.summary).filter(Boolean)
 
   return (
-    <Card aria-live="polite">
-      <CardHeader
-        title="Live progress"
+    <Panel aria-live="polite">
+      <PanelHeader
+        title="Run progress"
         subtitle={live ? 'Streaming from the sandbox runner…' : 'Progress stream closed'}
         actions={<StatusBadge status={status} attempts={result?.attempts} />}
       />
-      <div className="px-5 py-4">
+      <div className="px-4 py-4 sm:px-5">
         {streamError && !TERMINAL.has(status) ? (
-          <ErrorState message="Progress stream disconnected. The run may still be in progress — refresh to re-check." />
+          <div className="mb-3">
+            <ErrorState message="Progress stream disconnected. The run may still be in progress — refresh to re-check." />
+          </div>
         ) : null}
 
         {status === 'running' ? (
@@ -69,15 +70,15 @@ export default function TaskProgress({ taskId, initial, onTerminal }) {
         {summaries.length > 0 ? (
           <ol className="space-y-2">
             {summaries.map((s, i) => (
-              <li key={i} className="rounded-md bg-slate-50 px-3 py-2 font-mono text-xs leading-relaxed text-slate-600">
-                {s}
+              <li key={i}>
+                <CodeBlock text={s} className="text-xs" />
               </li>
             ))}
           </ol>
         ) : (
-          <p className="text-sm text-slate-500">No progress events yet.</p>
+          <p className="text-sm text-ink-3">No progress events yet.</p>
         )}
       </div>
-    </Card>
+    </Panel>
   )
 }

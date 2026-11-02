@@ -1,17 +1,16 @@
-// Containment summary card (TASK 07) — the "run card" evidence for Blast
-// Radius Zero. Shows the guarantees the sandbox enforces (from the frozen
-// contract §3 / design §3.4) plus per-run context where available.
+// Containment summary — the "run card" evidence for Blast Radius Zero.
+// Shows the guarantees the sandbox enforces plus per-run context.
 
-import { Card, CardHeader } from './ui.jsx'
+import { Panel, PanelHeader } from './ui.jsx'
 
 const GUARANTEES = [
   {
     title: 'Container destroyed after every task',
-    detail: 'The sandbox is force-removed on success, failure, or timeout — it never outlives its task.',
+    detail: 'Force-removed on success, failure, or timeout — never outlives its task.',
   },
   {
     title: 'Non-root user',
-    detail: 'Code runs as an unprivileged `runner` user, never as root.',
+    detail: 'Code runs as an unprivileged runner user, never as root.',
   },
   {
     title: 'Read-only filesystem',
@@ -27,7 +26,7 @@ const GUARANTEES = [
   },
   {
     title: 'No network',
-    detail: 'Sandbox runs with --network none in v1 — no exfiltration.',
+    detail: 'Runs with --network none — no exfiltration path.',
   },
   {
     title: 'No secrets in sandbox',
@@ -41,8 +40,8 @@ const GUARANTEES = [
 
 export default function ContainmentCard({ status, attempts, summary }) {
   return (
-    <Card>
-      <CardHeader
+    <Panel>
+      <PanelHeader
         title="Containment — Blast Radius Zero"
         subtitle={
           status
@@ -50,18 +49,18 @@ export default function ContainmentCard({ status, attempts, summary }) {
             : 'What the sandbox guarantees'
         }
       />
-      <div className="px-5 py-4">
+      <div className="px-4 py-4 sm:px-5">
         {summary ? (
-          <p className="mb-4 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600">
+          <p className="mb-4 rounded-xl bg-surface-2 px-3.5 py-2.5 text-sm text-ink-2">
             {summary}
           </p>
         ) : null}
-        <ul className="grid gap-3 sm:grid-cols-2">
+        <ul className="grid gap-2.5 sm:grid-cols-2">
           {GUARANTEES.map((g) => (
-            <li key={g.title} className="flex gap-3 rounded-md border border-slate-200 p-3">
+            <li key={g.title} className="flex gap-3 rounded-xl border border-line p-3.5">
               <svg
                 aria-hidden="true"
-                className="mt-0.5 h-5 w-5 flex-none text-emerald-600"
+                className="mt-0.5 h-5 w-5 flex-none text-ok"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -74,13 +73,13 @@ export default function ContainmentCard({ status, attempts, summary }) {
                 />
               </svg>
               <div>
-                <p className="text-sm font-medium text-slate-800">{g.title}</p>
-                <p className="text-xs leading-relaxed text-slate-500">{g.detail}</p>
+                <p className="text-sm font-semibold text-ink">{g.title}</p>
+                <p className="text-xs leading-relaxed text-ink-3">{g.detail}</p>
               </div>
             </li>
           ))}
         </ul>
       </div>
-    </Card>
+    </Panel>
   )
 }

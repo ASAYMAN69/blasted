@@ -1,14 +1,10 @@
-// Run-history dashboard (TASK 07).
-//
-// The frozen contract has no GET /api/tasks list endpoint yet — so history is
-// sourced from localStorage (tasks submitted in this browser), and we quietly
-// probe GET /api/tasks for a future backend list endpoint (merged if present).
-// Each row shows status/attempts and links to the detail view.
+// Run-history dashboard. Sources: server GET /api/tasks (merged) + localStorage
+// fallback. Each row links to the detail view.
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getTask, listTasks } from '../api.js'
-import { Card, CardHeader, EmptyState, ErrorState, Spinner, StatusBadge } from './ui.jsx'
+import { Panel, PanelHeader, EmptyState, ErrorState, Spinner, StatusBadge } from './ui.jsx'
 
 const STORAGE_KEY = 'brz.tasks'
 
@@ -67,7 +63,6 @@ export default function HistoryDashboard() {
       .then((data) => {
         if (!alive) return
         setServerTasks(data)
-        // Merge server freshness into local records when ids overlap.
         if (Array.isArray(data) && data.length > 0) {
           setLocal((prev) => {
             const next = { ...prev }
@@ -116,44 +111,45 @@ export default function HistoryDashboard() {
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader
-          title="Run history"
-          subtitle="Tasks submitted from this browser (server list endpoint not yet in the contract)"
-          actions={
-            <button
-              type="button"
-              onClick={refreshLocal}
-              disabled={refreshing}
-              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {refreshing ? <Spinner label="Refreshing…" /> : 'Refresh'}
-            </button>
-          }
-        />
-        {error ? <div className="px-5 py-4"><ErrorState message={error} /></div> : null}
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">Run history</h1>
+          <p className="mt-1 text-sm text-ink-3">Every task, its outcome, and its attempts.</p>
+        </div>
+        <button
+          type="button"
+          onClick={refreshLocal}
+          disabled={refreshing}
+          className="btn btn-secondary flex-none text-sm"
+        >
+          {refreshing ? <Spinner label="Refreshing…" /> : 'Refresh'}
+        </button>
+      </div>
+
+      <Panel>
+        {error ? <div className="px-4 pt-4"><ErrorState message={error} /></div> : null}
         {rows.length === 0 ? (
           <EmptyState title="No tasks yet">
             Submit a task from the{' '}
-            <Link to="/" className="font-medium text-slate-900 underline underline-offset-2">
+            <Link to="/" className="font-semibold text-accent underline underline-offset-2">
               new task
             </Link>{' '}
             page.
           </EmptyState>
         ) : (
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-line">
             {rows.map((t) => (
               <li key={t.id}>
                 <Link
                   to={`/tasks/${t.id}`}
-                  className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500"
+                  className="flex flex-wrap items-center justify-between gap-2.5 px-4 py-3.5 transition-colors duration-150 hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent sm:px-5"
                 >
-                  <span className="min-w-0">
-                    <span className="block truncate font-mono text-sm text-slate-900">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-mono text-sm font-medium text-ink">
                       {t.id.slice(0, 8)}
                     </span>
-                    <span className="block text-xs text-slate-500">
+                    <span className="block text-xs text-ink-3">
                       {t.mode} · {fmt(t.created_at)}
                     </span>
                   </span>
@@ -163,7 +159,7 @@ export default function HistoryDashboard() {
             ))}
           </ul>
         )}
-      </Card>
+      </Panel>
     </div>
   )
 }
