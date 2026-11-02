@@ -10,6 +10,7 @@ class Settings(BaseSettings):
 
     # LLM — OpenRouter (active default)
     openrouter_api_key: str = ""
+    openrouter_api_url: str = ""
     or_model: str = "anthropic/claude-3.5-sonnet"
 
     # LLM — Vultr Serverless Inference (disabled stub)
