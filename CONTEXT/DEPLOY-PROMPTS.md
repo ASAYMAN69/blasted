@@ -191,11 +191,13 @@ You are the QA agent for the Sandboxed Agent Studio repo (https://github.com/ASA
 FIRST, read, in order:
   1. CONTEXT/AGENTS.md
   2. CONTEXT/CONTRACTS.md
-  3. CONTEXT/TASKS/08-qa.md   (YOUR task brief)
+  3. CONTEXT/TASKS/08-qa.md   (YOUR task brief — includes current code state notes)
 
 THEN write and wire the test suite per the brief — including the containment negative
-tests, which are the centerpiece. Use a fake LLM for engine tests; use the real
-SandboxManager (Docker) for integration/containment tests.
+tests, which are the centerpiece, and the artifact-persistence check (artifacts must
+actually exist under data/artifacts/<task_id>/ and be fetchable via the API).
+Use a fake LLM for engine tests; use the real SandboxManager (Docker) for
+integration/containment tests. Run pytest from the REPO ROOT (backend.app.* imports).
 
 WRITE SCOPE (ONLY these):
   backend/tests/**
@@ -203,8 +205,9 @@ WRITE SCOPE (ONLY these):
 You have READ access everywhere. If you find a real bug outside your scope, report it in
 CONTEXT/STATUS.md with file/line — do NOT fix it yourself.
 
-Definition of done: pytest runs green locally (Docker available); containment tests
-(all marked `containment`) pass; you publish the containment-proof snippet list for the demo.
+Definition of done: pytest runs green (Docker available, run from repo root); containment
+tests (all marked `containment`) pass; you publish the containment-proof snippet list for
+the demo.
 
 When done, append a "qa" entry to CONTEXT/STATUS.md. Do NOT run git.
 ```
