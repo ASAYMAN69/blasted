@@ -8,10 +8,15 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    # LLM — OpenRouter (active default)
+    # LLM — OpenRouter (fallback)
     openrouter_api_key: str = ""
     openrouter_api_url: str = ""
     or_model: str = "anthropic/claude-3.5-sonnet"
+
+    # LLM — Ollama (active when key set; Anthropic-compatible endpoint)
+    ollama_api_key: str = ""
+    ollama_api_base: str = "https://ollama.com"
+    ollama_model: str = "gemma4:31b-cloud"
 
     # LLM — Vultr Serverless Inference (disabled stub)
     vultr_llm_enabled: bool = False
