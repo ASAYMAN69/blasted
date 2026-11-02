@@ -113,16 +113,22 @@ class Orchestrator:
             for k, v in inputs["files"].items():
                 if isinstance(v, str):
                     files[str(k)] = v
+        # Mode-aware input filenames (must match each mode's generated scripts):
+        #   csv  -> /workspace/input.csv   (CsvMode reads INPUT_CSV_PATH)
+        #   coder -> /workspace/input_file  (wrapper copies to input_file.py)
+        #   chart -> /workspace/data.csv     (ChartMode reads INPUT_DATA_PATH)
+        #   fix  -> /workspace/input_file   (FixMode reads INPUT_FILE_PATH)
+        file_map = {
+            "csv": {"file": "input.csv", "data": "data.csv", "test": "test.py", "code": "source.py"},
+            "coder": {"file": "input_file", "data": "data.csv", "test": "test.py", "code": "source.py"},
+            "chart": {"file": "input.csv", "data": "data.csv", "test": "test.py", "code": "source.py"},
+            "fix": {"file": "input_file", "data": "data.csv", "test": "test.py", "code": "source.py"},
+        }
+        mapping = file_map.get(task.mode, {"file": "input_file", "data": "data.csv", "test": "test.py", "code": "source.py"})
         for key in ("file", "data", "test", "code"):
             val = inputs.get(key)
             if isinstance(val, str):
-                name = {
-                    "file": "input_file",
-                    "data": "data.csv",
-                    "test": "test.py",
-                    "code": "source.py",
-                }.get(key, key)
-                files[name] = val
+                files[mapping.get(key, key)] = val
         return files
 
     # ------------------------------------------------------------------ public

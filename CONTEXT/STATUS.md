@@ -179,3 +179,55 @@ Still open / notes:
 - Task state is in-memory (SQLite write-only). Fine for demo; restart loses history.
 - `VultrLLMClient` remains a disabled stub (per plan) — needs Vultr docs to enable.
 - QA agent (Wave 2) not yet deployed — the containment tests belong there.
+
+## qa — DONE (TASK 08)
+
+- Wrote the full test suite under `backend/tests/**` (only write scope touched).
+  Files: `conftest.py`, `_support.py`, `test_engine_unit.py`,
+  `test_modes_registry.py`, `test_llm_selection.py`,
+  `test_modes_real_sandbox.py`, `test_artifact_persistence.py`,
+  `test_e2e_smoke.py`, `test_containment.py`, `CONTAINMENT_PROOF.md`.
+- **Run from the repo root:** `backend/.venv/bin/pytest backend/tests`.
+  Container: **50 passed, 1 xfailed** (documented known bug, below), 0 failed.
+- Fake LLM (`FakeLLM`) for all engine tests; real `SandboxManager` (Docker)
+  for integration/containment tests. Docker-missing environments auto-skip the
+  real-sandbox suites via `require_docker`.
+- Containment negative tests (marker `containment`): **12 passed** — host FS
+  not mounted, container hostname isolated, no host env/secrets leak, memory
+  limit kills runaway allocation (exit 137), timeout kills runaway sleep
+  (exit 124), non-root uid, read-only rootfs, network blocked, and container
+  destroyed after success/error/timeout/OOM (`docker ps -a` before/after).
+- Artifact persistence verified end-to-end: orchestrator run → `summary.json`
+  exists at `data/artifacts/<task_id>/summary.json` → `GET
+  /api/artifacts/{task_id}/summary.json` returns 200 with matching bytes.
+- E2E smoke verified: POST task → SSE events → `passed`, artifacts fetchable,
+  `GET /api/tasks` list newest-first with `mode`/`created_at`, unknown mode 400.
+
+### Bug report (outside QA scope — engine-owned, not fixed here)
+- **CSV input filename mismatch.** `backend/app/engine/orchestrator.py`
+  `_build_files` (lines ~116–126) maps the convenience key `file` →
+  `input_file`, but `CsvMode` generates/verifies scripts that read
+  `/workspace/input.csv`. The schema-driven UI and `CsvMode` (frontend comment:
+  "csv.file -> input.csv") both assume `input.csv`. Result: submitting CSV via
+  `{file: ..., question: ...}` fails on every retry.
+  **Workaround until fixed:** submit `{files: {"input.csv": <csv>}, question: ...}`
+  (the explicit `files` dict passes through verbatim and works).
+  Pinned by xfail regression test `test_csv_file_input_lands_as_input_csv`.
+- Demo proof snippets published in `backend/tests/CONTAINMENT_PROOF.md`.
+
+## Lead review of Wave 2 (qa) — DONE
+
+- Ran the full suite: **51 passed, 0 failed** (was 50 passed + 1 xfailed).
+- QA's reported bug was real and is now **fixed**:
+  - `_build_files` was mode-blind: mapped `file` → `input_file`, but `CsvMode`
+    generates/verifies scripts that read `/workspace/input.csv`. CSV submissions via
+    the UI/API (`{file: ...}`) failed every retry.
+  - Fix: mode-aware filename mapping (`csv` → `input.csv`; `coder`/`fix` →
+    `input_file`; `chart` → `data.csv`). Verified end-to-end: `{file: ...}`
+    CSV task now passes on attempt 1.
+  - QA's xfail regression pin converted to a passing test; the mapping-contract test
+    updated to lock the corrected behavior.
+- QA's containment proof snippets are recorded in `backend/tests/CONTAINMENT_PROOF.md`
+  for the demo video.
+
+Wave 2 complete. Next: Wave 3 (`submission`), then Phase-0 Vultr deployment.
