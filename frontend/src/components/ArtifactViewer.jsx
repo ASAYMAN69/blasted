@@ -1,9 +1,9 @@
-// Artifact viewer. Renders artifacts by inferred kind: image, html, json, csv,
-// diff, or plain text — each with a download link.
+// Artifact viewer — renders artifacts by inferred kind with hover-lift cards.
 
+import { motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { artifactUrl, fetchArtifactText } from '../api.js'
-import { Panel, PanelHeader, CodeBlock, EmptyState, ErrorState, Spinner } from './ui.jsx'
+import { EASE, CodeBlock, EmptyState, ErrorState, Panel, PanelHeader, Spinner } from './ui.jsx'
 
 const IMAGE_RE = /\.(png|jpe?g|gif|webp|svg|bmp)$/i
 const HTML_RE = /\.(html?)$/i
@@ -68,12 +68,12 @@ function DataTable({ rows }) {
   const body = rows.slice(1)
   const maxRows = 50
   return (
-    <div className="overflow-x-auto rounded-xl border border-line">
+    <div className="overflow-x-auto rounded-2xl border border-line">
       <table className="min-w-full text-sm">
         <thead>
-          <tr className="bg-surface-2 text-left">
+          <tr className="bg-bg-2 text-left">
             {headers.map((h, i) => (
-              <th key={i} scope="col" className="px-3 py-2 font-semibold text-ink-2">
+              <th key={i} scope="col" className="px-3 py-2.5 font-semibold text-ink-2">
                 {h}
               </th>
             ))}
@@ -81,9 +81,9 @@ function DataTable({ rows }) {
         </thead>
         <tbody className="divide-y divide-line">
           {body.slice(0, maxRows).map((row, r) => (
-            <tr key={r}>
+            <tr key={r} className="transition-colors duration-fast ease-out hover:bg-surface-2">
               {row.map((cell, c) => (
-                <td key={c} className="px-3 py-2 text-ink-2">
+                <td key={c} className="px-3 py-2.5 text-ink-2">
                   {cell}
                 </td>
               ))}
@@ -110,12 +110,12 @@ function JsonView({ text }) {
   if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object' && parsed[0] !== null) {
     const headers = Array.from(new Set(parsed.flatMap((o) => Object.keys(o))))
     return (
-      <div className="overflow-x-auto rounded-xl border border-line">
+      <div className="overflow-x-auto rounded-2xl border border-line">
         <table className="min-w-full text-sm">
           <thead>
-            <tr className="bg-surface-2 text-left">
+            <tr className="bg-bg-2 text-left">
               {headers.map((h) => (
-                <th key={h} scope="col" className="px-3 py-2 font-semibold text-ink-2">
+                <th key={h} scope="col" className="px-3 py-2.5 font-semibold text-ink-2">
                   {h}
                 </th>
               ))}
@@ -123,9 +123,9 @@ function JsonView({ text }) {
           </thead>
           <tbody className="divide-y divide-line">
             {parsed.map((row, r) => (
-              <tr key={r}>
+              <tr key={r} className="transition-colors duration-fast ease-out hover:bg-surface-2">
                 {headers.map((h) => (
-                  <td key={h} className="px-3 py-2 text-ink-2">
+                  <td key={h} className="px-3 py-2.5 text-ink-2">
                     {typeof row[h] === 'object' && row[h] !== null
                       ? JSON.stringify(row[h])
                       : String(row[h] ?? '')}
@@ -143,7 +143,7 @@ function JsonView({ text }) {
 
 function DiffView({ text }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-code-bg">
+    <div className="overflow-x-auto rounded-2xl border border-code-bg">
       <pre className="bg-code-bg px-4 py-3 font-mono text-xs leading-relaxed">
         {text.split('\n').map((line, i) => {
           let cls = 'text-code-ink'
@@ -163,6 +163,7 @@ function DiffView({ text }) {
 
 function ArtifactPanel({ taskId, name }) {
   const kind = kindFor(name)
+  const reduce = useReducedMotion()
   const [text, setText] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -188,11 +189,13 @@ function ArtifactPanel({ taskId, name }) {
   let body
   if (kind === 'image') {
     body = (
-      <a href={url} target="_blank" rel="noreferrer">
-        <img
+      <a href={url} target="_blank" rel="noreferrer" className="group block">
+        <motion.img
           src={url}
           alt={`Artifact: ${name}`}
-          className="max-h-96 w-full rounded-xl border border-line object-contain bg-surface-2"
+          whileHover={reduce ? undefined : { scale: 1.015 }}
+          transition={{ duration: 0.3, ease: EASE }}
+          className="max-h-96 w-full rounded-2xl border border-line object-contain bg-bg-2"
         />
       </a>
     )
@@ -201,7 +204,7 @@ function ArtifactPanel({ taskId, name }) {
       <iframe
         src={url}
         title={`Artifact: ${name}`}
-        className="h-96 w-full rounded-xl border border-line bg-white"
+        className="h-96 w-full rounded-2xl border border-line bg-white"
         sandbox="allow-scripts allow-same-origin"
       />
     )
@@ -220,22 +223,29 @@ function ArtifactPanel({ taskId, name }) {
   }
 
   return (
-    <Panel>
-      <PanelHeader
-        title={<span className="font-mono text-sm">{name}</span>}
-        subtitle={`${kind} artifact`}
-        actions={
-          <a href={url} target="_blank" rel="noreferrer" className="btn btn-secondary min-h-0 px-2.5 py-1.5 text-xs">
-            Download
-          </a>
-        }
-      />
-      <div className="px-4 py-4 sm:px-5">{body}</div>
-    </Panel>
+    <motion.div
+      initial={reduce ? false : { opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: EASE }}
+    >
+      <Panel>
+        <PanelHeader
+          title={<span className="font-mono text-sm">{name}</span>}
+          subtitle={`${kind} artifact`}
+          actions={
+            <a href={url} target="_blank" rel="noreferrer" className="btn btn-secondary min-h-0 px-2.5 py-1.5 text-xs">
+              Download
+            </a>
+          }
+        />
+        <div className="px-5 py-4">{body}</div>
+      </Panel>
+    </motion.div>
   )
 }
 
 export default function ArtifactViewer({ taskId, artifacts = [] }) {
+  const reduce = useReducedMotion()
   if (artifacts.length === 0) {
     return (
       <Panel>
@@ -248,12 +258,24 @@ export default function ArtifactViewer({ taskId, artifacts = [] }) {
   }
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-base font-bold tracking-tight">Artifacts</h2>
-        <p className="text-sm text-ink-3">Files produced by the sandbox run.</p>
-      </div>
-      {artifacts.map((name) => (
-        <ArtifactPanel key={name} taskId={taskId} name={name} />
+      <motion.div
+        initial={reduce ? false : { opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: EASE }}
+      >
+        <div className="eyebrow">Output</div>
+        <h2 className="mt-2.5 text-xl font-bold tracking-tight">Artifacts</h2>
+        <p className="mt-1 text-sm text-ink-3">Files produced by the sandbox run.</p>
+      </motion.div>
+      {artifacts.map((name, i) => (
+        <motion.div
+          key={name}
+          initial={reduce ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: EASE, delay: i * 0.06 }}
+        >
+          <ArtifactPanel taskId={taskId} name={name} />
+        </motion.div>
       ))}
     </div>
   )

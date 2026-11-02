@@ -4,15 +4,18 @@ export default {
   theme: {
     extend: {
       colors: {
-        canvas: 'hsl(var(--canvas))',
+        bg: 'hsl(var(--bg))',
+        'bg-2': 'hsl(var(--bg-2))',
         surface: 'hsl(var(--surface))',
         'surface-2': 'hsl(var(--surface-2))',
+        elev: 'hsl(var(--elev))',
         ink: 'hsl(var(--ink))',
         'ink-2': 'hsl(var(--ink-2))',
         'ink-3': 'hsl(var(--ink-3))',
         line: 'hsl(var(--line))',
         'line-2': 'hsl(var(--line-2))',
         accent: 'hsl(var(--accent))',
+        'accent-2': 'hsl(var(--accent-2))',
         'accent-ink': 'hsl(var(--accent-ink))',
         'accent-soft': 'hsl(var(--accent-soft))',
         ok: 'hsl(var(--ok))',
@@ -24,20 +27,37 @@ export default {
         'code-bg': 'hsl(var(--code-bg))',
         'code-ink': 'hsl(var(--code-ink))',
       },
-      boxShadow: {
-        'soft': '0 1px 2px hsl(var(--ink) / 0.04), 0 4px 16px hsl(var(--ink) / 0.05)',
+      fontFamily: {
+        display: ['Space Grotesk', 'system-ui', 'sans-serif'],
+        sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
       },
-      borderRadius: {
-        xl: '0.875rem',
+      boxShadow: {
+        glow: '0 12px 40px -12px hsl(var(--accent) / 0.45)',
+        'glow-ok': '0 12px 40px -12px hsl(var(--ok) / 0.4)',
+        soft: '0 8px 32px -16px hsl(var(--ink) / 0.25)',
+      },
+      transitionTimingFunction: {
+        out: 'var(--ease-out)',
+        'in-out': 'var(--ease-in-out)',
+        drawer: 'var(--ease-drawer)',
+      },
+      transitionDuration: {
+        fast: 'var(--d-fast)',
+        med: 'var(--d-med)',
+        slow: 'var(--d-slow)',
       },
       keyframes: {
-        'fade-in': {
-          from: { opacity: '0' },
-          to: { opacity: '1' },
+        'pulse-glow': {
+          '0%, 100%': { opacity: '0.5' },
+          '50%': { opacity: '1' },
+        },
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
         },
       },
       animation: {
-        'fade-in': 'fade-in 200ms ease-out both',
+        'pulse-glow': 'pulse-glow 2.4s ease-in-out infinite',
       },
     },
   },

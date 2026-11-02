@@ -1,10 +1,10 @@
-// Run-history dashboard. Sources: server GET /api/tasks (merged) + localStorage
-// fallback. Each row links to the detail view.
+// Run-history dashboard — staggered entrance, hover-lift rows.
 
+import { motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getTask, listTasks } from '../api.js'
-import { Panel, PanelHeader, EmptyState, ErrorState, Spinner, StatusBadge } from './ui.jsx'
+import { EASE, EmptyState, ErrorState, Panel, Spinner, StatusBadge } from './ui.jsx'
 
 const STORAGE_KEY = 'brz.tasks'
 
@@ -26,6 +26,7 @@ function saveLocal(map) {
 }
 
 export default function HistoryDashboard() {
+  const reduce = useReducedMotion()
   const [local, setLocal] = useState(loadLocal)
   const [serverTasks, setServerTasks] = useState(null)
   const [error, setError] = useState(null)
@@ -48,7 +49,7 @@ export default function HistoryDashboard() {
               return next
             })
           } catch {
-            /* keep last known local status */
+            /* keep last known */
           }
         }),
       )
@@ -111,26 +112,43 @@ export default function HistoryDashboard() {
   }
 
   return (
-    <div className="space-y-5">
+    <motion.div
+      initial={reduce ? false : { opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: EASE }}
+      className="mx-auto max-w-3xl space-y-6 pb-24 lg:pb-0"
+    >
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Run history</h1>
-          <p className="mt-1 text-sm text-ink-3">Every task, its outcome, and its attempts.</p>
+          <div className="eyebrow">Execution log</div>
+          <h1 className="mt-2.5 text-3xl font-bold tracking-tight">
+            <span className="text-gradient">Run history</span>
+          </h1>
+          <p className="mt-2 text-[15px] text-ink-3">Every task, its outcome, and its attempts.</p>
         </div>
-        <button
+        <motion.button
           type="button"
           onClick={refreshLocal}
           disabled={refreshing}
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.97 }}
           className="btn btn-secondary flex-none text-sm"
         >
           {refreshing ? <Spinner label="Refreshing…" /> : 'Refresh'}
-        </button>
+        </motion.button>
       </div>
 
       <Panel>
-        {error ? <div className="px-4 pt-4"><ErrorState message={error} /></div> : null}
+        {error ? <div className="px-5 pt-4"><ErrorState message={error} /></div> : null}
         {rows.length === 0 ? (
-          <EmptyState title="No tasks yet">
+          <EmptyState
+            icon={
+              <svg aria-hidden="true" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            }
+            title="No tasks yet"
+          >
             Submit a task from the{' '}
             <Link to="/" className="font-semibold text-accent underline underline-offset-2">
               new task
@@ -139,27 +157,37 @@ export default function HistoryDashboard() {
           </EmptyState>
         ) : (
           <ul className="divide-y divide-line">
-            {rows.map((t) => (
-              <li key={t.id}>
+            {rows.map((t, i) => (
+              <motion.li
+                key={t.id}
+                initial={reduce ? false : { opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: EASE, delay: Math.min(i * 0.04, 0.4) }}
+              >
                 <Link
                   to={`/tasks/${t.id}`}
-                  className="flex flex-wrap items-center justify-between gap-2.5 px-4 py-3.5 transition-colors duration-150 hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent sm:px-5"
+                  className="group flex flex-wrap items-center justify-between gap-2.5 px-5 py-4 transition-colors duration-fast ease-out hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-mono text-sm font-medium text-ink">
-                      {t.id.slice(0, 8)}
+                    <span className="flex items-center gap-2">
+                      <span className="block truncate font-mono text-sm font-medium text-ink">
+                        {t.id.slice(0, 8)}
+                      </span>
+                      <svg aria-hidden="true" className="h-3.5 w-3.5 text-ink-3 opacity-0 transition-opacity duration-fast ease-out group-hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                      </svg>
                     </span>
-                    <span className="block text-xs text-ink-3">
+                    <span className="mt-0.5 block text-xs text-ink-3">
                       {t.mode} · {fmt(t.created_at)}
                     </span>
                   </span>
                   <StatusBadge status={t.status} attempts={t.attempts} />
                 </Link>
-              </li>
+              </motion.li>
             ))}
           </ul>
         )}
       </Panel>
-    </div>
+    </motion.div>
   )
 }
