@@ -70,6 +70,8 @@ It is authoritative. If your task brief contradicts the design, STOP and ask the
 
 ## Dependency order (for the human operator deploying agents)
 
+0. **Phase 0 (human):** `CONTEXT/PHASE0-VULTR-SETUP.md` — Vultr account/credit/VM,
+   Docker, `.env`. Required before any agent that executes can be tested end-to-end.
 1. `sandbox` (Docker containment) — needed by everything that executes
 2. `engine` (orchestrator + LLM client) — depends on sandbox interface
 3. `csv`, `coder`, `chart`, `fix` (modes) — depend on frozen mode base + engine
