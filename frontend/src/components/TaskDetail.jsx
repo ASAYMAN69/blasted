@@ -1,10 +1,9 @@
-// Task detail page: current result + live SSE progress + artifacts + containment card.
+// Task detail page: current result + live SSE progress + artifacts.
 
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getTask } from '../api.js'
 import ArtifactViewer from './ArtifactViewer.jsx'
-import ContainmentCard from './ContainmentCard.jsx'
 import TaskProgress from './TaskProgress.jsx'
 import { Panel, EmptyState, ErrorState, Spinner } from './ui.jsx'
 
@@ -99,8 +98,6 @@ export default function TaskDetail() {
       <TaskProgress taskId={id} initial={initial} onTerminal={handleTerminal} />
 
       <ArtifactViewer taskId={id} artifacts={result?.artifacts || initial.artifacts || []} />
-
-      <ContainmentCard status={result?.status} attempts={result?.attempts} summary={result?.summary} />
     </div>
   )
 }
