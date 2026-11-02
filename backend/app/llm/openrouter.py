@@ -39,7 +39,15 @@ class OpenRouterClient:
 
     def generate_json(self, prompt: str, schema: dict) -> dict:
         text = self.generate(prompt, system="Respond with JSON only.", max_tokens=2048)
+        cleaned = text.strip()
+        if cleaned.startswith("```"):
+            lines = cleaned.splitlines()
+            if lines and lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].startswith("```"):
+                lines = lines[:-1]
+            cleaned = "\n".join(lines).strip()
         try:
-            return json.loads(text)
+            return json.loads(cleaned)
         except json.JSONDecodeError as exc:
             raise LLMError(f"model did not return valid JSON: {exc}") from exc

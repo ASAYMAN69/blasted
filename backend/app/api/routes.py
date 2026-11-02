@@ -1,11 +1,111 @@
 """HTTP API routes. Owned by the `engine` agent (TASK 01)."""
-from fastapi import APIRouter
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse, StreamingResponse
+from pydantic import BaseModel
+
+from backend.app.config import get_settings
+from backend.app.engine.orchestrator import Orchestrator, Task
+from backend.app.llm import get_llm_client
 
 router = APIRouter(prefix="/api")
 
-# TODO(TASK 01): implement the endpoints per CONTRACTS §5:
-#   POST /api/tasks
-#   GET  /api/tasks/{id}
-#   GET  /api/tasks/{id}/events   (SSE)
-#   GET  /api/artifacts/{task_id}/{name}
-#   GET  /api/modes
+_ORCHESTRATOR: Orchestrator | None = None
+
+
+class TaskCreate(BaseModel):
+    mode: str
+    inputs: dict = {}
+
+
+def _get_orchestrator() -> Orchestrator:
+    global _ORCHESTRATOR
+    if _ORCHESTRATOR is None:
+        settings = get_settings()
+        llm = get_llm_client(settings)
+        sandbox = None
+        try:
+            from backend.app.sandbox.manager import SandboxManager
+
+            try:
+                sandbox = SandboxManager(settings)
+            except TypeError:
+                sandbox = SandboxManager()
+        except Exception:
+            sandbox = None
+        _ORCHESTRATOR = Orchestrator(settings, llm, sandbox, None)
+    return _ORCHESTRATOR
+
+
+def _mode_registry() -> dict[str, Any]:
+    try:
+        from backend.app.engine.modes import MODE_REGISTRY
+
+        return MODE_REGISTRY
+    except Exception:
+        return {}
+
+
+@router.post("/tasks", response_model=Task)
+async def create_task(body: TaskCreate) -> Task:
+    registry = _mode_registry()
+    if body.mode not in registry:
+        raise HTTPException(status_code=400, detail=f"unknown mode: {body.mode}")
+    orch = _get_orchestrator()
+    return await orch.submit(body.mode, body.inputs)
+
+
+@router.get("/tasks/{task_id}")
+async def get_task(task_id: str) -> Any:
+    orch = _get_orchestrator()
+    result = await orch.get(task_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="task not found")
+    return result
+
+
+@router.get("/tasks")
+async def list_tasks() -> list[Any]:
+    orch = _get_orchestrator()
+    return orch.list_tasks()
+
+
+@router.get("/tasks/{task_id}/events")
+async def task_events(task_id: str) -> StreamingResponse:
+    orch = _get_orchestrator()
+    task = orch.get_task(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="task not found")
+
+    async def event_stream():
+        async for result in orch.run_loop(task):
+            yield f"data: {result.model_dump_json()}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@router.get("/artifacts/{task_id}/{name}")
+async def get_artifact(task_id: str, name: str) -> FileResponse:
+    path = Path("data/artifacts") / task_id / name
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="artifact not found")
+    return FileResponse(path)
+
+
+@router.get("/modes")
+async def list_modes() -> list[dict[str, Any]]:
+    registry = _mode_registry()
+    out = []
+    for name, cls in registry.items():
+        try:
+            instance = cls()
+            schema = getattr(instance, "input_schema", {})
+        except Exception:
+            schema = getattr(cls, "input_schema", {})
+        out.append({"name": name, "input_schema": schema})
+    return out

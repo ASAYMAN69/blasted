@@ -3,8 +3,13 @@
 Owned by the `engine` agent (TASK 01). The data models here are part of the frozen
 contract (CONTEXT/CONTRACTS.md §4) — shape them as specified, implement the loop.
 """
+from __future__ import annotations
+
+import json
+import uuid
 from datetime import datetime
-from typing import AsyncIterator, Literal
+from pathlib import Path
+from typing import Any, AsyncIterator, Literal
 
 from pydantic import BaseModel
 
@@ -26,18 +31,273 @@ class RunResult(BaseModel):
     artifacts: list[str]
 
 
+def _load_mode_registry() -> dict[str, type]:
+    try:
+        from backend.app.engine.modes import MODE_REGISTRY
+
+        return MODE_REGISTRY
+    except Exception:
+        return {}
+
+
 class Orchestrator:
-    def __init__(self, settings, llm, sandbox, store):
+    """State machine driving the agentic loop for a single task."""
+
+    def __init__(self, settings: Any, llm: Any, sandbox: Any, store: Any = None) -> None:
         self._settings = settings
         self._llm = llm
         self._sandbox = sandbox
         self._store = store
+        self._tasks: dict[str, Task] = {}
+        self._results: dict[str, RunResult] = {}
+        if isinstance(store, (str, Path)):
+            self._db_path: Path | None = Path(store)
+        elif store is None:
+            self._db_path = Path("data/sandboxed.db")
+        else:
+            self._db_path = None
 
+    # ------------------------------------------------------------------ helpers
+    def _max_retries(self) -> int:
+        try:
+            return int(getattr(self._settings, "max_retries", 3))
+        except (TypeError, ValueError):
+            return 3
+
+    def _ensure_task_persisted(self, task: Task) -> None:
+        try:
+            if self._db_path is not None:
+                from backend.app.store import db as store_db
+
+                store_db.init_store(self._db_path)
+                store_db.create_task(self._db_path, task.id, task.mode, task.inputs)
+            elif self._store is not None and hasattr(self._store, "create_task"):
+                self._store.create_task(task.id, task.mode, task.inputs)
+        except Exception:
+            pass
+
+    def _update_task_persisted(self, task_id: str, status: str, summary: str) -> None:
+        try:
+            if self._db_path is not None:
+                from backend.app.store import db as store_db
+
+                store_db.update_task_status(self._db_path, task_id, status, summary)
+            elif self._store is not None and hasattr(self._store, "update_task_status"):
+                self._store.update_task_status(task_id, status, summary)
+        except Exception:
+            pass
+
+    def _sanitize_code(self, raw: str) -> str:
+        text = (raw or "").strip()
+        if "```" in text:
+            lines = text.splitlines()
+            # find first fenced block
+            start = None
+            for i, line in enumerate(lines):
+                if line.strip().startswith("```"):
+                    start = i + 1
+                    break
+            if start is not None:
+                end = len(lines)
+                for j in range(start, len(lines)):
+                    if lines[j].strip().startswith("```"):
+                        end = j
+                        break
+                text = "\n".join(lines[start:end]).strip()
+        return text
+
+    def _build_files(self, task: Task) -> dict[str, str]:
+        files: dict[str, str] = {}
+        inputs = task.inputs if isinstance(task.inputs, dict) else {}
+        if isinstance(inputs.get("files"), dict):
+            for k, v in inputs["files"].items():
+                if isinstance(v, str):
+                    files[str(k)] = v
+        for key in ("file", "data", "test", "code"):
+            val = inputs.get(key)
+            if isinstance(val, str):
+                name = {
+                    "file": "input_file",
+                    "data": "data.csv",
+                    "test": "test.py",
+                    "code": "source.py",
+                }.get(key, key)
+                files[name] = val
+        return files
+
+    # ------------------------------------------------------------------ public
     async def submit(self, mode: str, inputs: dict) -> Task:
-        raise NotImplementedError("TASK 01")
+        """Create and persist a new task, returning the Task object."""
+        task = Task(
+            id=str(uuid.uuid4()),
+            mode=mode,
+            inputs=inputs if isinstance(inputs, dict) else {},
+            created_at=datetime.utcnow(),
+        )
+        self._tasks[task.id] = task
+        self._ensure_task_persisted(task)
+        self._update_task_persisted(task.id, "queued", "")
+        return task
 
     async def get(self, task_id: str) -> RunResult | None:
-        raise NotImplementedError("TASK 01")
+        """Return the latest RunResult for a task, if any."""
+        if task_id in self._results:
+            return self._results[task_id]
+        if task_id in self._tasks:
+            return RunResult(
+                task_id=task_id,
+                status="queued",
+                attempts=0,
+                summary="",
+                artifacts=[],
+            )
+        return None
 
-    def run_loop(self, task: Task) -> AsyncIterator[RunResult]:
-        raise NotImplementedError("TASK 01")
+    def get_task(self, task_id: str) -> Task | None:
+        return self._tasks.get(task_id)
+
+    def list_tasks(self) -> list[dict]:
+        """Snapshot of all known tasks (newest first), enriched with mode/created_at."""
+        results: list[dict] = []
+        for task_id, task in self._tasks.items():
+            r = self._results.get(task_id)
+            entry = {
+                "task_id": task_id,
+                "mode": task.mode,
+                "created_at": task.created_at.isoformat(),
+                "status": (r.status if r else "queued"),
+                "attempts": (r.attempts if r else 0),
+                "summary": (r.summary if r else ""),
+                "artifacts": (r.artifacts if r else []),
+            }
+            results.append(entry)
+        results.sort(key=lambda e: e["created_at"], reverse=True)
+        return results
+
+    async def run_loop(self, task: Task) -> AsyncIterator[RunResult]:
+        """Run the agentic loop, yielding RunResult progress updates."""
+        self._tasks[task.id] = task
+        self._ensure_task_persisted(task)
+
+        registry = _load_mode_registry()
+        mode_cls = registry.get(task.mode)
+        mode = None
+        if mode_cls is not None:
+            try:
+                mode = mode_cls()
+            except Exception:
+                mode = None
+
+        max_retries = self._max_retries()
+        attempts = 0
+        artifacts: list[str] = []
+        last_error: str | None = None
+        summary = ""
+
+        yield RunResult(
+            task_id=task.id,
+            status="running",
+            attempts=0,
+            summary="",
+            artifacts=[],
+        )
+
+        if mode is None:
+            summary = f"Unknown or unavailable mode: {task.mode}"
+            self._update_task_persisted(task.id, "failed", summary)
+            result = RunResult(
+                task_id=task.id,
+                status="failed",
+                attempts=0,
+                summary=summary,
+                artifacts=[],
+            )
+            self._results[task.id] = result
+            yield result
+            return
+
+        while attempts < max_retries:
+            attempts += 1
+            try:
+                plan_prompt = mode.build_plan_prompt(task)
+                if last_error:
+                    plan_prompt = plan_prompt + "\n\nPrevious error:\n" + last_error
+                plan = self._llm.generate(plan_prompt)
+
+                code_prompt = mode.build_code_prompt(task, plan)
+                if last_error:
+                    code_prompt = (
+                        code_prompt
+                        + "\n\nPrevious error:\n"
+                        + last_error
+                        + "\nFix the code accordingly."
+                    )
+                raw_code = self._llm.generate(code_prompt)
+                code = self._sanitize_code(raw_code)
+
+                files = self._build_files(task)
+                artifact_dir = Path("data/artifacts") / task.id
+                artifact_dir.mkdir(parents=True, exist_ok=True)
+                exec_result = await self._sandbox.execute(
+                    code, files, artifact_out_dir=artifact_dir
+                )
+                verification = mode.verify(exec_result)
+                artifacts = list(exec_result.artifacts or [])
+
+                if getattr(verification, "ok", False):
+                    status = "passed"
+                    try:
+                        summary = self._llm.generate(
+                            "Summarize the successful run, citing real output.\n"
+                            f"stdout:\n{exec_result.stdout}\n"
+                            f"stderr:\n{exec_result.stderr}"
+                        )
+                    except Exception:
+                        summary = getattr(verification, "reason", "") or "passed"
+                    self._update_task_persisted(task.id, status, summary)
+                    result = RunResult(
+                        task_id=task.id,
+                        status="passed",
+                        attempts=attempts,
+                        summary=summary,
+                        artifacts=artifacts,
+                    )
+                    self._results[task.id] = result
+                    yield result
+                    return
+
+                last_error = (
+                    f"{getattr(verification, 'reason', 'verification failed')}\n"
+                    f"exit_code={exec_result.exit_code}\n"
+                    f"stderr:\n{exec_result.stderr}\n"
+                    f"stdout:\n{exec_result.stdout}"
+                )
+            except Exception as exc:  # noqa: BLE001
+                last_error = f"{type(exc).__name__}: {exc}"
+
+            yield RunResult(
+                task_id=task.id,
+                status="running",
+                attempts=attempts,
+                summary=last_error or "",
+                artifacts=artifacts,
+            )
+
+        # exhausted
+        status = "failed"
+        try:
+            summary = self._llm.generate(
+                f"Explain the failure after {attempts} attempts.\n{last_error or ''}"
+            )
+        except Exception:
+            summary = last_error or "failed"
+        self._update_task_persisted(task.id, status, summary)
+        result = RunResult(
+            task_id=task.id,
+            status="failed",
+            attempts=attempts,
+            summary=summary,
+            artifacts=artifacts,
+        )
+        self._results[task.id] = result
+        yield result

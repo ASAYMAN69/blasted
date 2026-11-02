@@ -5,9 +5,9 @@ After=docker.service network-online.target
 Wants=network-online.target
 
 [Service]
-WorkingDirectory=/opt/sandboxed-agent-studio/backend
+WorkingDirectory=/opt/sandboxed-agent-studio
 EnvironmentFile=/opt/sandboxed-agent-studio/.env
-ExecStart=/opt/sandboxed-agent-studio/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+ExecStart=/opt/sandboxed-agent-studio/backend/.venv/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 Restart=on-failure
 User=sandbox
 

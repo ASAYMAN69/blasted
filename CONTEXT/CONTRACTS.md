@@ -54,8 +54,13 @@ class ExecutionResult(BaseModel):
 
 class SandboxManager(Protocol):
     async def execute(self, code: str, files: dict[str, str],
-                      timeout_s: int | None = None) -> ExecutionResult: ...
+                      timeout_s: int | None = None,
+                      artifact_out_dir: str | Path | None = None) -> ExecutionResult: ...
 ```
+
+`artifact_out_dir` (added by lead integration fix): when given, artifact files are
+copied from the ephemeral workspace into this directory before the workspace is
+deleted — this is what makes `GET /api/artifacts/...` work.
 
 Containment guarantees (must hold): non-root user, read-only rootfs except `/workspace`,
 memory/CPU limits, wall-clock timeout, container destroyed after every task.
@@ -91,6 +96,7 @@ explain → bounded retry (default 3 attempts) → finalize.
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/api/tasks` | submit a task `{mode, inputs}` → `Task` |
+| GET | `/api/tasks` | list known tasks as RunResult summaries (newest first) |
 | GET | `/api/tasks/{id}` | run status + result |
 | GET | `/api/tasks/{id}/events` | SSE stream of progress |
 | GET | `/api/artifacts/{task_id}/{name}` | fetch artifact |

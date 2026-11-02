@@ -1,34 +1,122 @@
 // API client (TASK 07). Backend contract in CONTEXT/CONTRACTS.md §5.
+//
+// All helpers return promises; network/HTTP failures throw `ApiError` so views
+// can render the right fallback (server down vs 4xx/5xx).
+
 const BASE = '/api'
 
-export async function listModes() {
-  const res = await fetch(`${BASE}/modes`)
-  if (!res.ok) throw new Error(`GET /modes -> ${res.status}`)
+export class ApiError extends Error {
+  /**
+   * @param {number} status HTTP status, or 0 for network/server-down
+   * @param {string} message
+   */
+  constructor(status, message) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
+async function parseError(res) {
+  let message = `HTTP ${res.status}`
+  try {
+    const body = await res.json()
+    if (body && typeof body.detail === 'string') message = body.detail
+    else if (body && typeof body.detail === 'object') {
+      message = JSON.stringify(body.detail)
+    }
+  } catch {
+    /* keep default message */
+  }
+  return new ApiError(res.status, message)
+}
+
+async function jsonRequest(path, options = {}) {
+  let res
+  try {
+    res = await fetch(`${BASE}${path}`, options)
+  } catch {
+    throw new ApiError(0, 'Cannot reach the API server. Is the backend running on :8000?')
+  }
+  if (!res.ok) throw await parseError(res)
   return res.json()
 }
 
-export async function submitTask(mode, inputs) {
-  const res = await fetch(`${BASE}/tasks`, {
+/** GET /api/modes -> [{name, input_schema}] */
+export function listModes() {
+  return jsonRequest('/modes')
+}
+
+/** POST /api/tasks -> Task */
+export function submitTask(mode, inputs) {
+  return jsonRequest('/tasks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ mode, inputs }),
   })
-  if (!res.ok) throw new Error(`POST /tasks -> ${res.status}`)
-  return res.json()
 }
 
-export async function getTask(taskId) {
-  const res = await fetch(`${BASE}/tasks/${taskId}`)
-  if (!res.ok) throw new Error(`GET /tasks/${taskId} -> ${res.status}`)
-  return res.json()
+/** GET /api/tasks/{id} -> RunResult */
+export function getTask(taskId) {
+  return jsonRequest(`/tasks/${encodeURIComponent(taskId)}`)
 }
 
-export function taskEvents(taskId, onEvent) {
-  const es = new EventSource(`${BASE}/tasks/${taskId}/events`)
-  es.onmessage = (e) => onEvent(JSON.parse(e.data))
-  return es
+/**
+ * GET /api/tasks (list) — NOT in the frozen contract yet. Probed quietly by
+ * the history dashboard; a 404 means the backend doesn't expose it and we
+ * fall back to local history. Resolved to null when unavailable.
+ */
+export async function listTasks() {
+  try {
+    const data = await jsonRequest('/tasks')
+    return Array.isArray(data) ? data : null
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null
+    throw err
+  }
 }
 
+/**
+ * Subscribe to GET /api/tasks/{id}/events (SSE).
+ *
+ * @param {string} taskId
+ * @param {object} handlers {onEvent, onError, onOpen}
+ * @returns {{close: () => void}}
+ */
+export function taskEvents(taskId, { onEvent, onError, onOpen } = {}) {
+  const es = new EventSource(`${BASE}/tasks/${encodeURIComponent(taskId)}/events`)
+  es.onmessage = (e) => {
+    try {
+      onEvent?.(JSON.parse(e.data))
+    } catch {
+      /* ignore malformed frames */
+    }
+  }
+  es.onopen = () => onOpen?.()
+  es.onerror = () => {
+    // EventSource auto-reconnects; surface it but don't throw.
+    onError?.()
+  }
+  return {
+    close() {
+      es.close()
+    },
+  }
+}
+
+/** GET /api/artifacts/{task_id}/{name} */
 export function artifactUrl(taskId, name) {
-  return `${BASE}/artifacts/${taskId}/${encodeURIComponent(name)}`
+  return `${BASE}/artifacts/${encodeURIComponent(taskId)}/${encodeURIComponent(name)}`
+}
+
+/** Fetch an artifact's text content (for tables/logs/diffs). */
+export async function fetchArtifactText(taskId, name) {
+  let res
+  try {
+    res = await fetch(artifactUrl(taskId, name))
+  } catch {
+    throw new ApiError(0, 'Cannot reach the API server while loading the artifact.')
+  }
+  if (!res.ok) throw await parseError(res)
+  return res.text()
 }

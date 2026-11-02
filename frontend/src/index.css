@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif;
+  }
+  :focus-visible {
+    outline-style: solid;
+    outline-width: 2px;
+    outline-offset: 2px;
+  }
+}
