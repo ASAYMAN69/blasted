@@ -1,9 +1,14 @@
-// API client (TASK 07). Backend contract in CONTEXT/CONTRACTS.md §5.
+// API client. Backend contract in CONTEXT/CONTRACTS.md §5.
+//
+// The backend origin is configurable via VITE_BACKEND_ORIGIN (frontend/.env):
+//   - empty → same-origin `/api` (Vite dev proxy / FastAPI static mount / nginx)
+//   - absolute URL → call that backend directly (needs CORS enabled there)
 //
 // All helpers return promises; network/HTTP failures throw `ApiError` so views
 // can render the right fallback (server down vs 4xx/5xx).
 
-const BASE = '/api'
+const ORIGIN = String(import.meta.env.VITE_BACKEND_ORIGIN || '').replace(/\/+$/, '')
+const BASE = ORIGIN ? `${ORIGIN}/api` : '/api'
 
 export class ApiError extends Error {
   /**
