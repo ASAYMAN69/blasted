@@ -1,0 +1,15 @@
+# systemd unit template (TASK 02). Copy to /etc/systemd/system/ and enable.
+[Unit]
+Description=Sandboxed Agent Studio backend
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/sandboxed-agent-studio/backend
+EnvironmentFile=/opt/sandboxed-agent-studio/.env
+ExecStart=/opt/sandboxed-agent-studio/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+User=sandbox
+
+[Install]
+WantedBy=multi-user.target

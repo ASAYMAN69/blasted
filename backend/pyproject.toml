@@ -1,0 +1,36 @@
+[project]
+name = "sandboxed-agent-studio"
+version = "0.1.0"
+description = "Sandboxed Agent Studio — Vultr Agent Rush Hackathon (Challenge 1)"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "python-multipart>=0.0.9",
+    "anthropic>=0.40",
+    "openai>=1.40",
+    "docker>=7.1",
+    "pandas>=2.2",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = [
+    "containment: negative tests proving sandbox isolation",
+]
