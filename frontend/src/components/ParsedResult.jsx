@@ -2,6 +2,7 @@
 // Turns the JSON answer into a stat grid + data table instead of raw text.
 
 import { motion, useReducedMotion } from 'framer-motion'
+import Markdown from './Markdown.jsx'
 import { EASE } from './ui.jsx'
 
 function StatGrid({ numbers }) {
@@ -102,9 +103,9 @@ export default function ParsedResult({ parsed, summary }) {
       className="space-y-4"
     >
       {(ps || summary) ? (
-        <p className="border border-line bg-bg-2 px-4 py-3 text-sm leading-relaxed text-ink-2">
-          {ps || summary}
-        </p>
+        <div className="border border-line bg-bg-2 px-4 py-3">
+          <Markdown text={ps || summary} />
+        </div>
       ) : null}
 
       {verdict}
