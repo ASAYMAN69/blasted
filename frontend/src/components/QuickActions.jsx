@@ -29,7 +29,7 @@ export default function QuickActions({ csvText, onPick, disabled }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.3, ease: EASE }}
-          className="rounded-2xl border border-accent/20 bg-accent-soft/50 px-4 py-3"
+          className=" border border-accent/20 bg-accent-soft/50 px-4 py-3"
         >
           <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-accent">
             <SparkIcon />
@@ -46,7 +46,7 @@ export default function QuickActions({ csvText, onPick, disabled }) {
                 transition={{ duration: 0.25, ease: EASE, delay: i * 0.04 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => onPick(s.question)}
-                className="rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink-2 transition-colors duration-fast ease-out hover:border-accent/40 hover:bg-accent-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40"
+                className=" border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink-2 transition-colors duration-fast ease-out hover:border-accent/40 hover:bg-accent-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40"
               >
                 {s.label}
               </motion.button>

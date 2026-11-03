@@ -74,7 +74,7 @@ export default function TaskProgress({ taskId, initial, onTerminal }) {
             return (
               <div key={s} className="flex flex-1 items-center gap-1">
                 <motion.div
-                  className={`h-1 flex-1 rounded-full ${isDone ? 'bg-accent' : isCurrent ? 'bg-accent/60' : 'bg-surface-2'}`}
+                  className={`h-1 flex-1  ${isDone ? 'bg-accent' : isCurrent ? 'bg-accent/60' : 'bg-surface-2'}`}
                   animate={isCurrent && !reduce ? { opacity: [0.5, 1, 0.5] } : undefined}
                   transition={isCurrent ? { duration: 1.8, repeat: Infinity, ease: 'easeInOut' } : undefined}
                 />
