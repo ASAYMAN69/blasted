@@ -65,8 +65,34 @@ export default function ParsedResult({ parsed, summary }) {
   const hasStats = numbers && Object.keys(numbers).length > 0
   const hasTable = Array.isArray(table) && table.length > 0
   const extra = Object.entries(rest).filter(([k]) => !['summary', 'numbers', 'table', 'chart'].includes(k))
+  const hasVerdict = 'run_ok' in rest || 'fixed' in rest || 'test_ok' in rest
 
-  if (!hasStats && !hasTable && extra.length === 0) return null
+  if (!hasStats && !hasTable && !hasVerdict && extra.length === 0) return null
+
+  const verdict = hasVerdict ? (
+    <div className="flex flex-wrap gap-2">
+      {'run_ok' in rest ? (
+        <span className={`border px-3 py-1.5 text-xs font-semibold ${rest.run_ok ? 'border-ok/40 bg-ok-soft text-ok' : 'border-danger/40 bg-danger-soft text-danger'}`}>
+          {rest.run_ok ? '✓ runs cleanly' : '✕ still failing'}
+        </span>
+      ) : null}
+      {'fixed' in rest ? (
+        <span className={`border px-3 py-1.5 text-xs font-semibold ${rest.fixed ? 'border-accent/40 bg-accent-soft text-accent' : 'border-line bg-surface-2 text-ink-2'}`}>
+          {rest.fixed ? '✎ repair applied' : '— no repair needed'}
+        </span>
+      ) : null}
+      {'test_ok' in rest && rest.test_ok !== null ? (
+        <span className={`border px-3 py-1.5 text-xs font-semibold ${rest.test_ok ? 'border-ok/40 bg-ok-soft text-ok' : 'border-danger/40 bg-danger-soft text-danger'}`}>
+          {rest.test_ok ? '✓ tests passed' : '✕ tests failing'}
+        </span>
+      ) : null}
+      {typeof rest.attempts === 'number' ? (
+        <span className="border border-line bg-surface-2 px-3 py-1.5 text-xs font-semibold text-ink-2">
+          {rest.attempts} {rest.attempts === 1 ? 'attempt' : 'attempts'}
+        </span>
+      ) : null}
+    </div>
+  ) : null
 
   return (
     <motion.div
@@ -81,6 +107,8 @@ export default function ParsedResult({ parsed, summary }) {
         </p>
       ) : null}
 
+      {verdict}
+
       {hasStats ? <StatGrid numbers={numbers} /> : null}
       {hasTable ? <ResultTable rows={table} /> : null}
 
@@ -89,7 +117,7 @@ export default function ParsedResult({ parsed, summary }) {
           {extra.map(([k, v]) => (
             <div key={k} className="flex items-baseline gap-3 border border-line bg-bg-2 px-4 py-2.5">
               <span className="font-mono text-[10px] uppercase tracking-wider text-ink-3">{k}</span>
-              <span className="min-w-0 flex-1 truncate font-mono text-xs text-ink-2">{String(v)}</span>
+              <span className="min-w-0 flex-1 truncate font-mono text-xs text-ink-2">{typeof v === 'boolean' ? (v ? 'yes' : 'no') : String(v)}</span>
             </div>
           ))}
         </div>

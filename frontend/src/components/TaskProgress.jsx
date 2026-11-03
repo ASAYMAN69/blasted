@@ -4,7 +4,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { taskEvents } from '../api.js'
-import { EASE, CodeBlock, ErrorState, Panel, PanelHeader, Spinner, StatusBadge } from './ui.jsx'
+import { EASE, ErrorState, Panel, PanelHeader, Spinner, StatusBadge } from './ui.jsx'
 
 const TERMINAL = new Set(['passed', 'failed'])
 
@@ -103,16 +103,22 @@ export default function TaskProgress({ taskId, initial, onTerminal }) {
               key="log"
               initial={reduce ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="space-y-2"
+              className="space-y-1.5"
             >
               {summaries.map((s, i) => (
                 <motion.li
                   key={i}
-                  initial={reduce ? false : { opacity: 0, y: 8 }}
+                  initial={reduce ? false : { opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, ease: EASE }}
+                  transition={{ duration: 0.25, ease: EASE }}
+                  className="flex items-start gap-2.5 border border-line bg-bg-2 px-3 py-2"
                 >
-                  <CodeBlock text={s} className="text-xs" />
+                  <span className="mt-0.5 flex-none font-mono text-[10px] uppercase tracking-wider text-ink-3">
+                    try {i + 1}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate font-mono text-xs leading-relaxed text-ink-2" title={s}>
+                    {s.length > 180 ? `${s.slice(0, 180)}…` : s}
+                  </span>
                 </motion.li>
               ))}
             </motion.ol>
