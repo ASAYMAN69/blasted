@@ -1,17 +1,15 @@
 """HTTP API routes. Owned by the `engine` agent (TASK 01)."""
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
-
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
-from pydantic import BaseModel
 
 from backend.app.config import get_settings
 from backend.app.engine.orchestrator import Orchestrator, Task
 from backend.app.llm import get_llm_client
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse, StreamingResponse
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api")
 

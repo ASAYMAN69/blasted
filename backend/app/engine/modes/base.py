@@ -1,9 +1,8 @@
 """The Mode protocol — FROZEN (read-only). Implement it, never edit it."""
 from typing import Protocol
 
-from pydantic import BaseModel
-
 from backend.app.engine.orchestrator import ExecutionResult, Task
+from pydantic import BaseModel
 
 
 class Verification(BaseModel):

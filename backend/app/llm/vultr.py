@@ -7,10 +7,9 @@ list from their docs, then un-gate and verify against a live key.
 """
 import json
 
-from openai import OpenAI
-
 from backend.app.config import Settings
 from backend.app.llm.base import LLMError
+from openai import OpenAI
 
 
 class VultrLLMClient:

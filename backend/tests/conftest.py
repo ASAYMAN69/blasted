@@ -18,15 +18,12 @@ if str(REPO_ROOT) not in sys.path:
 
 import docker as docker_sdk
 import pytest
-
 from backend.app.config import Settings
 from backend.app.engine.orchestrator import Orchestrator
 from backend.app.sandbox.manager import SandboxManager
 from backend.tests._support import (
-    DOCKER_READY,
     FakeLLM,
     FakeSandbox,
-    container_ids,
     make_test_settings,
 )
 

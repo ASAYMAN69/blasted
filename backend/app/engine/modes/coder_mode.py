@@ -20,8 +20,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from backend.app.engine.orchestrator import Task
 from backend.app.engine.modes.base import Verification
+from backend.app.engine.orchestrator import Task
 from backend.app.sandbox.manager import ExecutionResult
 
 # Marker the wrapper must print as one line, followed by one single-line JSON
@@ -272,10 +272,11 @@ class CoderMode:
     @staticmethod
     def _describe_pass(verdict: dict[str, Any]) -> str:
         """Render a human-readable PASS reason that names the passing signal."""
-        if verdict.get("test_ok") is True:
-            signal = "test ran successfully"
-        else:
-            signal = "file runs cleanly"
+        signal = (
+            "test ran successfully"
+            if verdict.get("test_ok") is True
+            else "file runs cleanly"
+        )
         extras = []
         if verdict.get("fixed"):
             extras.append("repair applied")

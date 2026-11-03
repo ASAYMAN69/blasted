@@ -10,14 +10,11 @@ import asyncio
 from datetime import datetime
 
 import pytest
-
 from backend.app.engine import orchestrator as orch_mod
-from backend.app.engine.modes.base import Verification
 from backend.app.engine.orchestrator import Task
 from backend.app.sandbox.manager import ExecutionResult, SandboxError
 from backend.tests._support import (
     AlwaysFailMode,
-    FakeLLM,
     FakeSandbox,
     FlakyMode,
     StubMode,

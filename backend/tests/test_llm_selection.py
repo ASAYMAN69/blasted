@@ -6,7 +6,6 @@ make no network calls, so this runs without credentials of any kind.
 from __future__ import annotations
 
 import pytest
-
 from backend.app.config import Settings
 from backend.app.llm import get_llm_client
 from backend.app.llm.base import LLMError

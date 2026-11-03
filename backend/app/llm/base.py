@@ -4,8 +4,6 @@ Implementations live in openrouter.py and vultr.py; selection lives in __init__.
 """
 from typing import Protocol
 
-from pydantic import BaseModel
-
 
 class LLMClient(Protocol):
     provider_name: str

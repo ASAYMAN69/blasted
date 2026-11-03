@@ -8,19 +8,15 @@ expected artifact is produced. Skipped automatically when Docker / the
 from __future__ import annotations
 
 import pytest
-
 from backend.app.engine.modes import MODE_REGISTRY
 from backend.tests._support import (
     CHART_CODE,
     CHART_DATA,
-    CHART_REQUEST,
     CODER_BROKEN_FILE,
     CODER_CODE,
     CSV_CODE,
     CSV_FIXTURE,
-    CSV_QUESTION,
     FIX_CODE,
-    FIX_DESIRED,
     FIX_INPUT,
     require_docker,
 )

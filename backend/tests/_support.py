@@ -9,16 +9,13 @@ Run pytest from the **repo root** (``backend.app.*`` imports) — see
 """
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import docker as docker_sdk
 import pytest
-
 from backend.app.config import Settings
 from backend.app.engine.modes.base import Verification
-from backend.app.engine.orchestrator import Orchestrator
-from backend.app.sandbox.manager import ExecutionResult, SandboxManager
+from backend.app.sandbox.manager import ExecutionResult
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 

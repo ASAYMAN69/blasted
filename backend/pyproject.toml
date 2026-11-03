@@ -34,3 +34,21 @@ asyncio_mode = "auto"
 markers = [
     "containment: negative tests proving sandbox isolation",
 ]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["backend"]
+
+[tool.ruff.lint]
+select = ["F", "E", "W", "I", "UP", "B", "SIM"]
+ignore = [
+    "E501",   # line length handled by formatter
+    "B023",   # loop-variable re-use in closures (intentional in UIs)
+    "E402",   # intentional lazy imports inside functions
+    "SIM105", # try/except/pass is more readable for cleanup blocks
+]
+
+[tool.ruff.lint.per-file-ignores]
+"backend/tests/*" = ["E402"]  # fixtures import after markers
+"backend/app/engine/modes/*" = ["E501"]
