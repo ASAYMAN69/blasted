@@ -405,7 +405,6 @@ export default function TaskForm() {
                             ) : null}
                             {showVisual && key === (mode === 'chart' ? 'data' : 'file') ? (
                               <VisualOptions
-                                task={task}
                                 value={visual}
                                 onChange={(v) => {
                                   setField('palette', v.palette)
