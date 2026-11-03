@@ -238,6 +238,7 @@ FIX_CODE = (
     "import difflib\n"
     "import subprocess\n"
     "import sys\n"
+    "import json\n"
     "\n"
     'orig = open("/workspace/input_file").read()\n'
     'fixed = orig.replace("return a + b + 1", "return a + b")\n'
@@ -254,4 +255,7 @@ FIX_CODE = (
     '    fromfile="original", tofile="fixed",\n'
     "))\n"
     'open("/workspace/fix.diff", "w").write(diff)\n'
+    'verdict = {"changed": True, "run_ok": r.returncode == 0,\n'
+    '    "diff_lines": diff.count("\\n"), "summary": "patched and verified"}\n'
+    'print("FIX_RESULT: " + json.dumps(verdict), file=sys.stdout)\n'
 )

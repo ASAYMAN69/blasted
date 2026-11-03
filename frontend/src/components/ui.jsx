@@ -56,11 +56,15 @@ const STATUS_META = {
 
 export function StatusBadge({ status, attempts, maxAttempts = 3 }) {
   const meta = STATUS_META[status] || STATUS_META.queued
+  const attemptLabel =
+    typeof attempts === 'number' && attempts > 0
+      ? ` · ${attempts} ${attempts === 1 ? 'attempt' : 'attempts'}`
+      : ''
   return (
     <Badge tone={meta.tone}>
       <StatusDot status={status} />
       {meta.label}
-      {typeof attempts === 'number' && attempts > 0 ? ` · ${attempts}/${maxAttempts}` : ''}
+      {attemptLabel}
     </Badge>
   )
 }

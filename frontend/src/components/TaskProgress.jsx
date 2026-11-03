@@ -56,7 +56,7 @@ export default function TaskProgress({ taskId, initial, onTerminal }) {
   return (
     <Panel aria-live="polite">
       <PanelHeader
-        title="Run progress"
+        title="Agent activity"
         subtitle={live ? 'Streaming from the sandbox runner…' : 'Progress stream closed'}
         actions={<StatusBadge status={status} attempts={result?.attempts} />}
       />
@@ -86,9 +86,9 @@ export default function TaskProgress({ taskId, initial, onTerminal }) {
         </div>
         <div className="-mt-3 mb-5 flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-ink-3">
           <span>Queued</span>
-          <span>Running</span>
+          <span>Working</span>
           <span className={status === 'passed' ? 'text-ok' : status === 'failed' ? 'text-danger' : ''}>
-            {status === 'failed' ? 'Failed' : 'Passed'}
+            {status === 'failed' ? 'Failed' : 'Done'}
           </span>
         </div>
 
@@ -115,7 +115,7 @@ export default function TaskProgress({ taskId, initial, onTerminal }) {
                   className="flex items-start gap-2.5 border border-line bg-bg-2 px-3 py-2"
                 >
                   <span className="mt-0.5 flex-none font-mono text-[10px] uppercase tracking-wider text-ink-3">
-                    try {i + 1}
+                    attempt {i + 1}
                   </span>
                   <div className="min-w-0 flex-1">
                     <Markdown text={s.length > 600 ? `${s.slice(0, 600)}…` : s} size="sm" />
