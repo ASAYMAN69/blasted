@@ -17,6 +17,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useState } from 'react'
 import { NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import TaskForm from './components/TaskForm.jsx'
 import TaskDetail from './components/TaskDetail.jsx'
 import HistoryDashboard from './components/HistoryDashboard.jsx'
 
