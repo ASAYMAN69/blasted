@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { listModes, submitTask } from '../api.js'
 import CsvPreview from './CsvPreview.jsx'
+import { EXAMPLES } from '../examples.js'
 import QuickActions from './QuickActions.jsx'
 import { EASE, ErrorState, Panel, Spinner } from './ui.jsx'
 
@@ -260,12 +261,25 @@ export default function TaskForm() {
     }
   }, [inputs, required, mode, navigate])
 
+  // Ctrl/Cmd+Enter submits from anywhere in the form.
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault()
+        if (!submitting && !loadingModes && modes.length > 0) handleSubmit()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [handleSubmit, submitting, loadingModes, modes.length])
+
   const properties = Object.entries(schema.properties || {}).filter(
     ([key]) => !['palette', 'chart_type'].includes(key),
   )
   const activeMeta = MODE_META[mode] || { label: mode, glyph: '◆', blurb: '' }
   const showVisual = mode === 'csv' || mode === 'chart'
   const visual = { palette: inputs.palette || 'aurora', chart_type: inputs.chart_type || 'auto' }
+  const example = EXAMPLES[mode]
 
   const container = {
     hidden: { opacity: 0 },
@@ -448,7 +462,7 @@ export default function TaskForm() {
             )}
           </div>
 
-          <div className="flex items-center gap-3 border-t border-line px-5 py-4">
+          <div className="flex flex-wrap items-center gap-3 border-t border-line px-5 py-4">
             <motion.button
               type="button"
               onClick={handleSubmit}
@@ -466,6 +480,20 @@ export default function TaskForm() {
                 </>
               )}
             </motion.button>
+            {example ? (
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => setInputs({ ...example.inputs })}
+                className="btn btn-ghost text-sm"
+                title="Fill the form with a working sample"
+              >
+                <svg aria-hidden="true" className="h-4 w-4 text-ink-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Try example
+              </button>
+            ) : null}
             {submitError ? (
               <div className="min-w-0 flex-1">
                 <ErrorState message={submitError} />

@@ -10,6 +10,7 @@
 // CLI, etc.) without re-parsing stdout.
 
 import { motion, useReducedMotion } from 'framer-motion'
+import { useCallback, useState } from 'react'
 import Markdown from './Markdown.jsx'
 import { EASE } from './ui.jsx'
 
@@ -69,6 +70,15 @@ function ResultTable({ rows }) {
 
 export default function ParsedResult({ parsed, summary }) {
   const reduce = useReducedMotion()
+  const [copied, setCopied] = useState(false)
+  const copy = useCallback(() => {
+    const text = summary || parsed?.summary || ''
+    if (!text) return
+    navigator.clipboard?.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1600)
+    }).catch(() => {})
+  }, [parsed, summary])
   if (!parsed || typeof parsed !== 'object') return null
   const { summary: ps, numbers, table, chart, ...rest } = parsed
   const hasStats = numbers && Object.keys(numbers).length > 0
@@ -122,6 +132,16 @@ export default function ParsedResult({ parsed, summary }) {
     >
       {(ps || summary) ? (
         <div className="border border-line bg-bg-2 px-4 py-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-ink-3">Summary</span>
+            <button
+              type="button"
+              onClick={copy}
+              className="font-mono text-[10px] uppercase tracking-wider text-ink-3 transition-colors duration-fast ease-out hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              {copied ? '✓ copied' : 'copy'}
+            </button>
+          </div>
           <Markdown text={ps || summary} />
         </div>
       ) : null}
