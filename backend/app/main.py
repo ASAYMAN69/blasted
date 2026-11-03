@@ -20,6 +20,7 @@ app = FastAPI(title="Sandboxed Agent Studio")
 #   - Only when someone sets VITE_BACKEND_ORIGIN to a different backend does
 #     CORS matter, and then we want it to just work.
 # Credentials are False because we use no cookies/sessions — only API calls.
+app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
