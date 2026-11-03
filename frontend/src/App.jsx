@@ -81,6 +81,7 @@ export default function App() {
           <p className="text-xs leading-relaxed text-ink-3">
             Every task runs inside an isolated, disposable sandbox.
           </p>
+          <p className="mt-2 font-mono text-[10px] text-ink-3/70">build {__GIT_SHA__}</p>
         </div>
       </motion.aside>
 
