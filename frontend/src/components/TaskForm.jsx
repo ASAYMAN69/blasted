@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { listModes, submitTask } from '../api.js'
+import CsvPreview from './CsvPreview.jsx'
 import QuickActions from './QuickActions.jsx'
 import { EASE, ErrorState, Panel, Spinner } from './ui.jsx'
 
@@ -314,11 +315,14 @@ export default function TaskForm() {
                               <UploadField id={id} value={inputs[key]} onChange={(v) => setField(key, v)} placeholder={placeholder} description={prop.description} />
                             </div>
                             {mode === 'csv' && key === 'file' ? (
-                              <QuickActions
-                                csvText={inputs[key]}
-                                disabled={submitting}
-                                onPick={(q) => setField('question', q)}
-                              />
+                              <>
+                                <CsvPreview csvText={inputs[key]} />
+                                <QuickActions
+                                  csvText={inputs[key]}
+                                  disabled={submitting}
+                                  onPick={(q) => setField('question', q)}
+                                />
+                              </>
                             ) : null}
                           </div>
                         )

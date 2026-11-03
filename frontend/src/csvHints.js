@@ -1,13 +1,13 @@
-// Client-side CSV introspection for quick-action suggestions.
+// Client-side CSV introspection + preview helpers.
 // Lightweight: reads the header row + a sample of rows to classify columns,
 // then fabricates contextual questions the CSV Analyst mode can answer.
 
-function parseCsvRows(text, sample = 12) {
+export function parseCsvRows(text, maxRows = 1000) {
   const rows = []
   let row = []
   let field = ''
   let inQuotes = false
-  for (let i = 0; i < text.length && rows.length <= sample; i++) {
+  for (let i = 0; i < text.length && rows.length <= maxRows; i++) {
     const ch = text[i]
     if (inQuotes) {
       if (ch === '"') {
