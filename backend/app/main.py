@@ -1,11 +1,10 @@
 """FastAPI application entrypoint. Owned by the `engine` agent (TASK 01)."""
 from pathlib import Path
 
+from backend.app.api.routes import router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-
-from backend.app.api.routes import router
 
 app = FastAPI(title="Sandboxed Agent Studio")
 

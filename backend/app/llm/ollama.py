@@ -6,7 +6,6 @@ Uses the Anthropic SDK against Ollama's Anthropic-compatible endpoint
 import json
 
 from anthropic import Anthropic
-
 from backend.app.config import Settings
 from backend.app.llm.base import LLMError
 

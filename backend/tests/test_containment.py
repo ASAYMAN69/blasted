@@ -19,7 +19,6 @@ import json
 import socket
 
 import pytest
-
 from backend.tests._support import container_ids, require_docker
 
 pytestmark = [pytest.mark.containment, require_docker, pytest.mark.asyncio]

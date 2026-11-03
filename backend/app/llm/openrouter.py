@@ -7,10 +7,9 @@ Supports both request styles:
 import json
 
 from anthropic import Anthropic
-from openai import OpenAI
-
 from backend.app.config import Settings
 from backend.app.llm.base import LLMError
+from openai import OpenAI
 
 # OpenRouter API root. The Anthropic SDK appends "/v1/messages" to base_url, so
 # the base must be the root (NOT .../api/v1, which would produce /api/v1/v1/messages).

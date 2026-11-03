@@ -8,9 +8,10 @@ from __future__ import annotations
 import ast
 import json
 import uuid
+from collections.abc import AsyncIterator
 from datetime import datetime
 from pathlib import Path
-from typing import Any, AsyncIterator, Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel
 

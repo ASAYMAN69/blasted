@@ -10,9 +10,9 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from backend.app.engine.orchestrator import Task
 from backend.app.engine.modes.base import Verification
 from backend.app.engine.modes.chart_mode import CHART_KINDS, PALETTES
+from backend.app.engine.orchestrator import Task
 from backend.app.sandbox.manager import ExecutionResult
 
 # Marker the generated script must print at the end of stdout, followed by one
@@ -21,12 +21,6 @@ RESULT_MARKER = "RESULT_JSON:"
 
 # Safety limit for echoing stderr back into verification reasons / retries.
 _STDERR_TAIL_CHARS = 400
-
-_SYSTEM_HINT = (
-    "You are a data-analysis planner for a sandboxed pandas runner. "
-    "The sandbox has no network access and only pandas, numpy and matplotlib "
-    "are installed."
-)
 
 _CODE_SYSTEM_HINT = (
     "You write complete, self-contained Python 3 scripts for a sandboxed runner. "

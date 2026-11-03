@@ -11,22 +11,20 @@ sandbox, then asserts:
 from __future__ import annotations
 
 import pytest
-from fastapi.testclient import TestClient
-
 from backend.app.api import routes as api_routes
-from backend.app.config import Settings
 from backend.app.engine.orchestrator import Orchestrator
 from backend.app.main import app
 from backend.app.sandbox.manager import SandboxManager
 from backend.tests._support import (
-    REPO_ROOT,
     CSV_CODE,
     CSV_FIXTURE,
     CSV_QUESTION,
+    REPO_ROOT,
     FakeLLM,
     make_test_settings,
     require_docker,
 )
+from fastapi.testclient import TestClient
 
 pytestmark = require_docker
 

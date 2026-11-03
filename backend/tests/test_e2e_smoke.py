@@ -9,8 +9,6 @@ from __future__ import annotations
 import json
 
 import pytest
-from fastapi.testclient import TestClient
-
 from backend.app.api import routes as api_routes
 from backend.app.engine.orchestrator import Orchestrator
 from backend.app.main import app
@@ -25,6 +23,7 @@ from backend.tests._support import (
     make_test_settings,
     require_docker,
 )
+from fastapi.testclient import TestClient
 
 pytestmark = require_docker
 

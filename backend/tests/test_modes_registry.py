@@ -8,7 +8,6 @@ from __future__ import annotations
 from datetime import datetime
 
 import pytest
-
 from backend.app.engine.modes import MODE_REGISTRY
 from backend.app.engine.orchestrator import Task
 from backend.app.sandbox.manager import ExecutionResult

@@ -9,11 +9,10 @@ patch runs cleanly (or reports the original already satisfied the goal).
 """
 from __future__ import annotations
 
-import json
 from typing import Any
 
-from backend.app.engine.orchestrator import Task
 from backend.app.engine.modes.base import Verification
+from backend.app.engine.orchestrator import Task
 from backend.app.sandbox.manager import ExecutionResult
 
 _STDERR_TAIL_CHARS = 400
