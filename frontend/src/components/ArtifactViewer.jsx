@@ -1,4 +1,10 @@
 // Artifact viewer — renders artifacts by inferred kind with hover-lift cards.
+//
+// Each artifact is fetched by name from the backend. Images/HTML are rendered
+// directly (lazy-loaded by the browser); text artifacts (JSON/CSV/diff/code)
+// are fetched as text and rendered appropriately. Diffs are sorted first
+// because they're usually the "result" of a fix. Friendly labels (fix.diff ->
+// "Patch (diff)") keep the UI readable.
 
 import { motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useState } from 'react'

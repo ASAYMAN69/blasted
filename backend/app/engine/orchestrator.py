@@ -258,7 +258,15 @@ class Orchestrator:
         return results
 
     async def run_loop(self, task: Task) -> AsyncIterator[RunResult]:
-        """Run the agentic loop, yielding RunResult progress updates."""
+        """Run the agentic loop, yielding RunResult progress updates.
+
+        The loop is deliberately bounded (max_retries) and never runs
+        unbounded: each attempt feeds the previous failure back into the
+        prompt, so a model that keeps producing broken code fails fast and
+        reports honestly instead of looping forever. Artifacts are persisted
+        out of the ephemeral sandbox before the container is destroyed, so
+        the frontend can fetch them even after the sandbox is gone.
+        """
         self._tasks[task.id] = task
         self._ensure_task_persisted(task)
 

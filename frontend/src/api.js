@@ -1,11 +1,12 @@
 // API client. Backend contract in CONTEXT/CONTRACTS.md §5.
 //
-// The backend origin is configurable via VITE_BACKEND_ORIGIN (frontend/.env):
-//   - empty → same-origin `/api` (Vite dev proxy / FastAPI static mount / nginx)
-//   - absolute URL → call that backend directly (needs CORS enabled there)
+// Design: one BASE (from VITE_BACKEND_ORIGIN) so the same code works in
+// dev (Vite proxy, same-origin) and prod (FastAPI static mount / nginx) and
+// cross-origin setups (direct backend URL). All helpers throw ApiError so
+// views can tell "server down" (status 0) from "4xx/5xx" apart.
 //
-// All helpers return promises; network/HTTP failures throw `ApiError` so views
-// can render the right fallback (server down vs 4xx/5xx).
+// SSE is used (not WebSockets) for live progress because it's one-way and
+// needs no client-side state machine — the browser reconnects automatically.
 
 const ORIGIN = String(import.meta.env.VITE_BACKEND_ORIGIN || '').replace(/\/+$/, '')
 const BASE = ORIGIN ? `${ORIGIN}/api` : '/api'

@@ -1,4 +1,19 @@
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+// App shell — "Ethereal Glass" dark premium.
+//
+// Layout model:
+//   - Desktop (lg+): a full-height glass side rail on the left (w-64) plus
+//     a main column padded to match it (lg:pl-64). This keeps navigation
+//     always visible instead of floating over content.
+//   - Mobile (< lg): a sticky floating glass top bar + a bottom tab bar
+//     with 44px+ touch targets (thumbs-first, safe-area aware).
+//
+// Why Framer Motion here: the entrance animations + the layoutId active-nav
+// indicator are the only "delight" moments; everything else (hover, press)
+// is CSS so it stays cheap. Reduced-motion is respected everywhere.
+//
+// The aurora background is position:fixed with pointer-events:none so it
+// never causes scroll jank, and backdrop-blur is only on the sticky chrome
+// (never on scrolling surfaces — that kills mobile perf).
 import { NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import TaskForm from './components/TaskForm.jsx'
 import TaskDetail from './components/TaskDetail.jsx'

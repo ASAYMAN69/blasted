@@ -1,6 +1,9 @@
 // Client-side CSV introspection + preview helpers.
-// Lightweight: reads the header row + a sample of rows to classify columns,
-// then fabricates contextual questions the CSV Analyst mode can answer.
+//
+// Pure (no backend call) so suggestions + preview appear instantly. The
+// parser handles quotes/commas correctly and is shared by csvHints and
+// CsvPreview so they never disagree. Column classification is heuristic
+// (numeric iff ≥80% of sampled values parse as numbers).
 
 export function parseCsvRows(text, maxRows = 1000) {
   const rows = []

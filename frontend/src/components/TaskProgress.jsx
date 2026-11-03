@@ -1,5 +1,9 @@
 // Live task progress via SSE — animated status with starfield-like progress.
-// Motion: status badge transitions, subtle pulse on running, log reveals.
+//
+// Design: SSE (not WebSockets) because the stream is one-way and the browser
+// auto-reconnects. We close the stream on terminal state or unmount to avoid
+// leaked connections. Step indicator + compact "attempt N" rows keep the live
+// view readable without dumping full code blocks.
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'

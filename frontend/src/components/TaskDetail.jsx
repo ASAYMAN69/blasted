@@ -1,4 +1,10 @@
 // Task detail page: current result + live SSE progress + artifacts.
+//
+// Loads the task once on mount, then opens an EventSource stream for live
+// progress (TaskProgress). On a terminal state we store the final result
+// so the artifact viewer + parsed result update without re-fetching.
+// The parsed result (structured AI answer) renders above artifacts so the
+// user sees the answer before the raw files.
 
 import { motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useState } from 'react'

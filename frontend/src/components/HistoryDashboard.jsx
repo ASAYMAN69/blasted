@@ -1,4 +1,9 @@
 // Run-history dashboard — staggered entrance, hover-lift rows.
+//
+// Sources: server GET /api/tasks (merged) + localStorage fallback. Each row
+// links to the detail view. We merge server freshness into local records when
+// ids overlap, so the dashboard works cross-device even if local state is
+// lost.
 
 import { motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useState } from 'react'
