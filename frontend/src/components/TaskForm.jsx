@@ -235,7 +235,7 @@ export default function TaskForm() {
                           aria-checked={active}
                           onClick={() => setMode(m.name)}
                           whileTap={{ scale: 0.97 }}
-                          className={`relative flex flex-col items-start gap-1.5 rounded-2xl border px-3.5 py-3 text-left transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                          className={`relative flex flex-col items-start gap-1.5  border px-3.5 py-3 text-left transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                             active
                               ? 'border-accent/40 bg-accent-soft'
                               : 'border-line bg-bg-2 hover:border-line-2 hover:bg-surface'
@@ -244,7 +244,7 @@ export default function TaskForm() {
                           {active ? (
                             <motion.span
                               layoutId="mode-active"
-                              className="absolute inset-0 -z-10 rounded-2xl border border-accent/30 bg-accent-soft"
+                              className="absolute inset-0 -z-10  border border-accent/30 bg-accent-soft"
                               transition={{ type: 'spring', stiffness: 400, damping: 32 }}
                             />
                           ) : null}

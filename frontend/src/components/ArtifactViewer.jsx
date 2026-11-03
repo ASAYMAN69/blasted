@@ -68,7 +68,7 @@ function DataTable({ rows }) {
   const body = rows.slice(1)
   const maxRows = 50
   return (
-    <div className="overflow-x-auto rounded-2xl border border-line">
+    <div className="overflow-x-auto  border border-line">
       <table className="min-w-full text-sm">
         <thead>
           <tr className="bg-bg-2 text-left">
@@ -110,7 +110,7 @@ function JsonView({ text }) {
   if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object' && parsed[0] !== null) {
     const headers = Array.from(new Set(parsed.flatMap((o) => Object.keys(o))))
     return (
-      <div className="overflow-x-auto rounded-2xl border border-line">
+      <div className="overflow-x-auto  border border-line">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="bg-bg-2 text-left">
@@ -143,7 +143,7 @@ function JsonView({ text }) {
 
 function DiffView({ text }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-code-bg">
+    <div className="overflow-x-auto  border border-code-bg">
       <pre className="bg-code-bg px-4 py-3 font-mono text-xs leading-relaxed">
         {text.split('\n').map((line, i) => {
           let cls = 'text-code-ink'
@@ -195,7 +195,7 @@ function ArtifactPanel({ taskId, name }) {
           alt={`Artifact: ${name}`}
           whileHover={reduce ? undefined : { scale: 1.015 }}
           transition={{ duration: 0.3, ease: EASE }}
-          className="max-h-96 w-full rounded-2xl border border-line object-contain bg-bg-2"
+          className="max-h-96 w-full  border border-line object-contain bg-bg-2"
         />
       </a>
     )
@@ -204,7 +204,7 @@ function ArtifactPanel({ taskId, name }) {
       <iframe
         src={url}
         title={`Artifact: ${name}`}
-        className="h-96 w-full rounded-2xl border border-line bg-white"
+        className="h-96 w-full  border border-line bg-white"
         sandbox="allow-scripts allow-same-origin"
       />
     )

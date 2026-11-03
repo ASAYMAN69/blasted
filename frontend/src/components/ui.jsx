@@ -40,7 +40,7 @@ const BADGE_TONES = {
 export function Badge({ tone = 'slate', children, className = '' }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${BADGE_TONES[tone] || BADGE_TONES.slate} ${className}`}
+      className={`inline-flex items-center gap-1.5  border px-2.5 py-1 text-xs font-semibold ${BADGE_TONES[tone] || BADGE_TONES.slate} ${className}`}
     >
       {children}
     </span>
@@ -74,7 +74,7 @@ export function StatusDot({ status }) {
         : status === 'failed'
           ? 'bg-danger'
           : 'bg-warn'
-  return <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${cls}`} />
+  return <span aria-hidden="true" className={`h-1.5 w-1.5  ${cls}`} />
 }
 
 export function Spinner({ label = 'Working…' }) {
@@ -88,7 +88,7 @@ export function Spinner({ label = 'Working…' }) {
     >
       <span
         aria-hidden="true"
-        className="h-4 w-4 animate-spin rounded-full border-2 border-line-2 border-t-accent"
+        className="h-4 w-4 animate-spin  border-2 border-line-2 border-t-accent"
       />
       {label}
     </motion.span>
@@ -103,7 +103,7 @@ export function ErrorState({ message, onRetry }) {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: EASE }}
-      className="rounded-2xl border border-danger/30 bg-danger-soft px-4 py-3.5"
+      className=" border border-danger/30 bg-danger-soft px-4 py-3.5"
     >
       <div className="flex items-start gap-2.5">
         <svg aria-hidden="true" className="mt-0.5 h-5 w-5 flex-none text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
@@ -133,7 +133,7 @@ export function EmptyState({ icon, title, children }) {
 export function CodeBlock({ text = '', className = '' }) {
   return (
     <pre
-      className={`overflow-x-auto whitespace-pre rounded-2xl border border-line bg-code-bg px-4 py-3 font-mono text-xs leading-relaxed text-code-ink ${className}`}
+      className={`overflow-x-auto whitespace-pre  border border-line bg-code-bg px-4 py-3 font-mono text-xs leading-relaxed text-code-ink ${className}`}
     >
       {text}
     </pre>
