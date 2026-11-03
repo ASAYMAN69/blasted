@@ -1,5 +1,9 @@
 // QuickActions — contextual suggestions for CSV Analyst.
-// Appears once CSV content is loaded; a tap fills the question field.
+//
+// Appears once CSV content is loaded; a tap fills the question field. The
+// introspection is pure client-side (no backend call), so suggestions
+// appear instantly as you type/paste. We rank categorical columns by
+// cardinality so breakdowns group by meaningful keys (e.g. region over date).
 
 import { AnimatePresence, motion } from 'framer-motion'
 import { useMemo } from 'react'

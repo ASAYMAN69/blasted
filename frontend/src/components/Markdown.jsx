@@ -1,5 +1,9 @@
 // Markdown — renders AI-produced text (summaries, verdicts, logs) as styled
 // HTML via react-markdown + remark-gfm. Safe by default (no raw HTML passthrough).
+//
+// We use a real markdown library instead of hand-rolling regex so tables,
+// nested lists, fenced code, and GFM extensions all work correctly and the
+// XSS surface stays zero. Styling is mapped to the design system.
 
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'

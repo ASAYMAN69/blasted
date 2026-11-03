@@ -42,6 +42,11 @@ class SandboxManager:
       - no network (network_mode=none)
       - wall-clock timeout kills the container
       - container removed on every path (success, error, timeout)
+
+    Why a sibling container, not exec on the host: the host runs the app,
+    the LLM client, and the secrets. Running AI-generated code in the same
+    process would let it read those secrets and crash the whole app. A
+    disposable sibling container is the whole point of "Blast Radius Zero".
     """
 
     def __init__(self, settings: Any | None = None, client: Any | None = None):

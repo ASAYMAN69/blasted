@@ -1,6 +1,8 @@
 // CsvPreview — live table preview of the CSV content in CSV Analyst mode.
+//
 // Safe on overflow: horizontal scroll is contained in its own box, header row
-// sticks, and rows are capped with a clear "showing X of Y" note.
+// sticks, and rows are capped with a clear "showing X of Y" note. Parsing
+// is shared with csvHints (same parser) so suggestions + preview never disagree.
 
 import { motion, useReducedMotion } from 'framer-motion'
 import { useMemo } from 'react'

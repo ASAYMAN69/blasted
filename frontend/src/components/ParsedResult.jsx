@@ -1,5 +1,13 @@
-// ParsedResult — renders the structured AI output (`RunResult.parsed`).
+// ParsedResult — renders the structured AI output (RunResult.parsed).
+//
 // Turns the JSON answer into a stat grid + data table instead of raw text.
+// Coder-style verdicts render as a chip strip (runs cleanly / repair
+// applied / tests passed / attempts) so the user sees the outcome at a
+// glance. Markdown rendering handles any prose the model emits.
+//
+// Why parse on the backend: keeps the frontend dumb and consistent, and
+// lets the same `parsed` object be reused by future consumers (exports,
+// CLI, etc.) without re-parsing stdout.
 
 import { motion, useReducedMotion } from 'framer-motion'
 import Markdown from './Markdown.jsx'

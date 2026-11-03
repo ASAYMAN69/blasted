@@ -1,6 +1,13 @@
 // Shared UI primitives — "Ethereal Glass" dark premium.
 // Accessible: visible focus, status never color-only, aria-live regions.
 // Motion: transform/opacity only, custom ease-out, reduced-motion aware.
+//
+// Design rules (from the design skills):
+//   - All corners are sharp (industrial-brutalist direction): no radius.
+//   - Status is never conveyed by color alone — icon + label + badge.
+//   - Press feedback is a tiny scale, never a layout shift.
+//   - Focus rings use the accent color so keyboard users always see where
+//     they are.
 
 import { motion, useReducedMotion } from 'framer-motion'
 import { ApiError } from '../api.js'

@@ -1,5 +1,13 @@
-// Task submission form — schema-driven, "Ethereal Glass" polish.
-// Motion: staggered section reveals, animated mode switching, magnetic-ish submit.
+// Task submission form — schema-driven from GET /api/modes.
+//
+// The form is driven by the backend's mode schemas, so adding a new mode on
+// the backend automatically shows up here — no frontend change needed. File
+// fields get an upload + paste; enums get a select; everything else a
+// textarea. Required-field validation happens client-side first, then the
+// backend re-validates.
+//
+// Motion: staggered section reveals, animated mode switching (layoutId
+// active pill), magnetic-ish submit. All transform/opacity only.
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
