@@ -141,12 +141,13 @@ class FixMode:
             "5. Write a unified diff between the ORIGINAL and FIXED content to "
             + _DIFF_PATH + " using difflib.unified_diff (fromfile='original', "
             "tofile='fixed').\n"
-            "6. As the LAST line of stdout, print exactly one line:\n"
+            "6. As the LAST line of stdout, print exactly one line built with "
+            "json.dumps(...) so it is valid, one-line JSON:\n"
             "   " + _FIX_RESULT_MARKER + ' {"changed": <bool: was any patch applied>, '
             '"run_ok": <bool: the fixed file ran with exit 0>, '
             '"diff_lines": <int: number of diff lines, 0 when unchanged>, '
             '"summary": <one short sentence>}\n'
-            "7. Print any progress/debug to stderr only; stdout must stay clean "
+            "   Output it like: print('" + _FIX_RESULT_MARKER + " ' + json.dumps(verdict))\n"            "7. Print any progress/debug to stderr only; stdout must stay clean "
             "except for the final " + _FIX_RESULT_MARKER + " line.\n"
             "8. Do not write files outside /workspace; do not modify "
             + _INPUT_FILE_PATH + ".\n"
@@ -210,7 +211,12 @@ class FixMode:
 
 
 def _parse_fix_verdict(stdout: str) -> dict | None:
-    """Parse the FIX_RESULT verdict line out of stdout (last occurrence wins)."""
+    """Parse the FIX_RESULT verdict line out of stdout (last occurrence wins).
+
+    Accepts strict JSON or a Python dict literal (models sometimes emit either).
+    """
+    from backend.app.engine.orchestrator import _coerce_dict
+
     text = (stdout or "").strip()
     if not text:
         return None
@@ -221,10 +227,7 @@ def _parse_fix_verdict(stdout: str) -> dict | None:
         payload = line[marker_idx + len(_FIX_RESULT_MARKER):].strip()
         if not payload:
             continue
-        try:
-            value = json.loads(payload)
-        except (json.JSONDecodeError, ValueError):
-            continue
-        if isinstance(value, dict):
+        value = _coerce_dict(payload)
+        if value is not None:
             return value
     return None

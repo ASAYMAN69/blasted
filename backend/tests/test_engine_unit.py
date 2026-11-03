@@ -249,3 +249,19 @@ async def test_submit_order_newest_first(make_orch):
     listing = orch.list_tasks()
     assert listing[0]["task_id"] == second.id
     assert len(listing) == 2
+
+
+def test_extract_parsed_tolerates_python_dict_literal():
+    """Regression: model emitted a single-quoted Python dict, not strict JSON."""
+    from backend.app.engine.orchestrator import extract_parsed
+
+    stdout = (
+        "STDOUT: Hello world\nSTDERR:\n"
+        "FIX_RESULT: {'changed': True, 'run_ok': True, 'diff_lines': 8, "
+        "'summary': 'Added return statement to greet function'}\n"
+    )
+    parsed = extract_parsed(stdout)
+    assert parsed is not None
+    assert parsed["changed"] is True
+    assert parsed["run_ok"] is True
+    assert parsed["diff_lines"] == 8
