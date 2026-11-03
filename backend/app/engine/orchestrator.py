@@ -309,7 +309,9 @@ class Orchestrator:
                     status = "passed"
                     try:
                         summary = self._llm.generate(
-                            "Summarize the successful run, citing real output.\n"
+                            "You are a terse status reporter. Summarize the successful run "
+                            "in ONE plain-text sentence, no markdown, no code, under 25 words. "
+                            "Mention the fix if one was applied.\n"
                             f"stdout:\n{exec_result.stdout}\n"
                             f"stderr:\n{exec_result.stderr}"
                         )
@@ -349,7 +351,9 @@ class Orchestrator:
         status = "failed"
         try:
             summary = self._llm.generate(
-                f"Explain the failure after {attempts} attempts.\n{last_error or ''}"
+                "You are a terse status reporter. Explain the failure in ONE plain-text "
+                "sentence, no markdown, no code, under 25 words.\n"
+                f"{last_error or ''}"
             )
         except Exception:
             summary = last_error or "failed"
