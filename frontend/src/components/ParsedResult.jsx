@@ -66,7 +66,7 @@ export default function ParsedResult({ parsed, summary }) {
   const hasStats = numbers && Object.keys(numbers).length > 0
   const hasTable = Array.isArray(table) && table.length > 0
   const extra = Object.entries(rest).filter(([k]) => !['summary', 'numbers', 'table', 'chart'].includes(k))
-  const hasVerdict = 'run_ok' in rest || 'fixed' in rest || 'test_ok' in rest
+  const hasVerdict = 'run_ok' in rest || 'fixed' in rest || 'test_ok' in rest || 'changed' in rest
 
   if (!hasStats && !hasTable && !hasVerdict && extra.length === 0) return null
 
@@ -80,6 +80,16 @@ export default function ParsedResult({ parsed, summary }) {
       {'fixed' in rest ? (
         <span className={`border px-3 py-1.5 text-xs font-semibold ${rest.fixed ? 'border-accent/40 bg-accent-soft text-accent' : 'border-line bg-surface-2 text-ink-2'}`}>
           {rest.fixed ? '✎ repair applied' : '— no repair needed'}
+        </span>
+      ) : null}
+      {'changed' in rest ? (
+        <span className={`border px-3 py-1.5 text-xs font-semibold ${rest.changed ? 'border-accent/40 bg-accent-soft text-accent' : 'border-line bg-surface-2 text-ink-2'}`}>
+          {rest.changed ? '✎ patch applied' : '— no changes needed'}
+        </span>
+      ) : null}
+      {typeof rest.diff_lines === 'number' ? (
+        <span className="border border-line bg-surface-2 px-3 py-1.5 text-xs font-semibold text-ink-2">
+          {rest.diff_lines} diff {rest.diff_lines === 1 ? 'line' : 'lines'}
         </span>
       ) : null}
       {'test_ok' in rest && rest.test_ok !== null ? (

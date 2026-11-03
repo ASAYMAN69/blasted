@@ -118,6 +118,18 @@ def test_chart_verify_artifact_required():
 
 def test_fix_verify_diff_required():
     mode = MODE_REGISTRY["fix"]()
-    assert mode.verify(_res(artifacts=["fix.diff"])).ok is True
-    assert mode.verify(_res(artifacts=[])).ok is False
+    ok_stdout = 'FIX_RESULT: {"changed": true, "run_ok": true, "diff_lines": 6, "summary": "ok"}\n'
+    # verified patch -> pass
+    assert mode.verify(_res(artifacts=["fix.diff"], stdout=ok_stdout)).ok is True
+    # patch applied but didn't run -> fail (never claim success on unverified fix)
+    assert (
+        mode.verify(
+            _res(artifacts=["fix.diff"], stdout='FIX_RESULT: {"changed": true, "run_ok": false, "diff_lines": 6}\n')
+        ).ok
+        is False
+    )
+    # missing diff artifact -> fail
+    assert mode.verify(_res(artifacts=[], stdout=ok_stdout)).ok is False
+    # missing verdict -> fail (no false success)
+    assert mode.verify(_res(artifacts=["fix.diff"], stdout="no verdict\n")).ok is False
     assert mode.verify(_res(exit_code=2, stderr="err")).ok is False

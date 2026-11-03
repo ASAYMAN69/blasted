@@ -43,7 +43,7 @@ def extract_parsed(stdout: str) -> dict | None:
     if not text:
         return None
 
-    for marker in ("RESULT_JSON:", "CODER_RESULT:", "RESULT:"):
+    for marker in ("RESULT_JSON:", "CODER_RESULT:", "FIX_RESULT:", "RESULT:"):
         idx = text.rfind(marker)
         if idx != -1:
             payload = text[idx + len(marker):].strip()

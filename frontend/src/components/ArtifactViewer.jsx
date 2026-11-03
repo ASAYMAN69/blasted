@@ -11,6 +11,20 @@ const JSON_RE = /\.json$/i
 const CSV_RE = /\.csv$/i
 const DIFF_RE = /\.(diff|patch)$/i
 
+// Friendly display names for known artifact filenames.
+const FRIENDLY = {
+  'fix.diff': 'Patch (diff)',
+  fixed_file: 'Resulting file',
+  'chart.png': 'Chart',
+  'chart.html': 'Chart (interactive)',
+  'input.csv': 'Dataset',
+  'summary.json': 'Structured result',
+}
+
+function displayName(name) {
+  return FRIENDLY[name] || name
+}
+
 function kindFor(name) {
   if (IMAGE_RE.test(name)) return 'image'
   if (HTML_RE.test(name)) return 'html'
@@ -230,7 +244,7 @@ function ArtifactPanel({ taskId, name }) {
     >
       <Panel>
         <PanelHeader
-          title={<span className="font-mono text-sm">{name}</span>}
+          title={<span className="font-mono text-sm">{displayName(name)}</span>}
           subtitle={`${kind} artifact`}
           actions={
             <a href={url} target="_blank" rel="noreferrer" className="btn btn-secondary min-h-0 px-2.5 py-1.5 text-xs">
@@ -256,6 +270,12 @@ export default function ArtifactViewer({ taskId, artifacts = [] }) {
       </Panel>
     )
   }
+  const ordered = [...artifacts].sort((a, b) => {
+    // Diffs first (the result of a fix), then everything else alphabetically.
+    const da = DIFF_RE.test(a) ? 0 : 1
+    const db = DIFF_RE.test(b) ? 0 : 1
+    return da - db || a.localeCompare(b)
+  })
   return (
     <div className="space-y-4">
       <motion.div
@@ -267,7 +287,7 @@ export default function ArtifactViewer({ taskId, artifacts = [] }) {
         <h2 className="mt-2.5 text-xl font-bold tracking-tight">Artifacts</h2>
         <p className="mt-1 text-sm text-ink-3">Files produced by the sandbox run.</p>
       </motion.div>
-      {artifacts.map((name, i) => (
+      {ordered.map((name, i) => (
         <motion.div
           key={name}
           initial={reduce ? false : { opacity: 0, y: 16 }}
