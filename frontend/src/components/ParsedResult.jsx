@@ -1,0 +1,99 @@
+// ParsedResult — renders the structured AI output (`RunResult.parsed`).
+// Turns the JSON answer into a stat grid + data table instead of raw text.
+
+import { motion, useReducedMotion } from 'framer-motion'
+import { EASE } from './ui.jsx'
+
+function StatGrid({ numbers }) {
+  const entries = Object.entries(numbers || {})
+  if (entries.length === 0) return null
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      {entries.map(([k, v], i) => (
+        <motion.div
+          key={k}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: EASE, delay: i * 0.04 }}
+          className="border border-line bg-bg-2 px-3.5 py-3"
+        >
+          <p className="truncate font-mono text-[10px] uppercase tracking-wider text-ink-3">{k}</p>
+          <p className="mt-1 truncate font-display text-lg font-semibold text-ink">
+            {typeof v === 'number' ? Number(v).toLocaleString(undefined, { maximumFractionDigits: 4 }) : String(v)}
+          </p>
+        </motion.div>
+      ))}
+    </div>
+  )
+}
+
+function ResultTable({ rows }) {
+  if (!Array.isArray(rows) || rows.length === 0) return null
+  const headers = Object.keys(rows[0])
+  return (
+    <div className="max-h-72 overflow-auto border border-line">
+      <table className="min-w-max w-full border-collapse text-sm">
+        <thead className="sticky top-0 z-10">
+          <tr className="bg-surface-2">
+            {headers.map((h) => (
+              <th key={h} scope="col" className="border-b border-r border-line px-3 py-2 text-left font-mono text-[11px] font-semibold uppercase tracking-wider text-ink-2 last:border-r-0">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {rows.map((row, r) => (
+            <tr key={r} className="transition-colors duration-fast ease-out hover:bg-surface-2">
+              {headers.map((h) => (
+                <td key={h} className="border-r border-line px-3 py-1.5 font-mono text-xs text-ink-2 last:border-r-0">
+                  {typeof row[h] === 'object' && row[h] !== null ? JSON.stringify(row[h]) : String(row[h] ?? '')}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+export default function ParsedResult({ parsed, summary }) {
+  const reduce = useReducedMotion()
+  if (!parsed || typeof parsed !== 'object') return null
+  const { summary: ps, numbers, table, chart, ...rest } = parsed
+  const hasStats = numbers && Object.keys(numbers).length > 0
+  const hasTable = Array.isArray(table) && table.length > 0
+  const extra = Object.entries(rest).filter(([k]) => !['summary', 'numbers', 'table', 'chart'].includes(k))
+
+  if (!hasStats && !hasTable && extra.length === 0) return null
+
+  return (
+    <motion.div
+      initial={reduce ? false : { opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: EASE }}
+      className="space-y-4"
+    >
+      {(ps || summary) ? (
+        <p className="border border-line bg-bg-2 px-4 py-3 text-sm leading-relaxed text-ink-2">
+          {ps || summary}
+        </p>
+      ) : null}
+
+      {hasStats ? <StatGrid numbers={numbers} /> : null}
+      {hasTable ? <ResultTable rows={table} /> : null}
+
+      {extra.length > 0 ? (
+        <div className="space-y-2">
+          {extra.map(([k, v]) => (
+            <div key={k} className="flex items-baseline gap-3 border border-line bg-bg-2 px-4 py-2.5">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-ink-3">{k}</span>
+              <span className="min-w-0 flex-1 truncate font-mono text-xs text-ink-2">{String(v)}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </motion.div>
+  )
+}

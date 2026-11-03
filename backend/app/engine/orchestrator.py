@@ -29,6 +29,60 @@ class RunResult(BaseModel):
     attempts: int
     summary: str
     artifacts: list[str]
+    parsed: dict | None = None  # structured answer extracted from sandbox stdout
+
+
+def extract_parsed(stdout: str) -> dict | None:
+    """Pull the machine-verifiable JSON block out of sandbox stdout.
+
+    Mirrors the modes' RESULT_JSON / verdict marker contracts: look for a line
+    that begins with a known marker and parse the trailing JSON; fall back to
+    the first balanced JSON object anywhere in stdout.
+    """
+    text = (stdout or "").strip()
+    if not text:
+        return None
+
+    for marker in ("RESULT_JSON:", "CODER_RESULT:", "RESULT:"):
+        idx = text.rfind(marker)
+        if idx != -1:
+            payload = text[idx + len(marker):].strip()
+            try:
+                value = json.loads(payload)
+            except json.JSONDecodeError:
+                value = None
+            if isinstance(value, dict):
+                return value
+
+    # last-resort: first balanced { ... } block
+    start = text.find("{")
+    if start != -1:
+        depth = 0
+        in_string = False
+        escaped = False
+        for i in range(start, min(len(text), start + 200_000)):
+            c = text[i]
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif c == "\\":
+                    escaped = True
+                elif c == '"':
+                    in_string = False
+                continue
+            if c == '"':
+                in_string = True
+            elif c == "{":
+                depth += 1
+            elif c == "}":
+                depth -= 1
+                if depth == 0:
+                    try:
+                        value = json.loads(text[start:i + 1])
+                    except json.JSONDecodeError:
+                        return None
+                    return value if isinstance(value, dict) else None
+    return None
 
 
 def _load_mode_registry() -> dict[str, type]:
@@ -175,6 +229,7 @@ class Orchestrator:
                 "attempts": (r.attempts if r else 0),
                 "summary": (r.summary if r else ""),
                 "artifacts": (r.artifacts if r else []),
+                "parsed": (r.parsed if r else None),
             }
             results.append(entry)
         results.sort(key=lambda e: e["created_at"], reverse=True)
@@ -267,6 +322,7 @@ class Orchestrator:
                         attempts=attempts,
                         summary=summary,
                         artifacts=artifacts,
+                        parsed=extract_parsed(exec_result.stdout),
                     )
                     self._results[task.id] = result
                     yield result

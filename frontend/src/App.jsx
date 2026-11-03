@@ -1,5 +1,4 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { useState } from 'react'
 import { NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import TaskForm from './components/TaskForm.jsx'
 import TaskDetail from './components/TaskDetail.jsx'
@@ -20,7 +19,7 @@ function NavLinkItem({ to, icon, label, end, onNavigate }) {
       end={end}
       onClick={onNavigate}
       className={({ isActive }) =>
-        `group relative flex items-center gap-2.5  px-3.5 py-3 text-sm font-medium transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+        `group relative flex items-center gap-2.5 px-3.5 py-3 text-sm font-medium transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
           isActive ? 'text-ink' : 'text-ink-2 hover:text-ink'
         }`
       }
@@ -30,7 +29,7 @@ function NavLinkItem({ to, icon, label, end, onNavigate }) {
           {isActive ? (
             <motion.span
               layoutId="nav-active"
-              className="absolute inset-0 -z-10  border border-accent/25 bg-accent-soft"
+              className="absolute inset-0 -z-10 border border-accent/25 bg-accent-soft"
               transition={{ type: 'spring', stiffness: 400, damping: 32 }}
             />
           ) : null}
@@ -47,25 +46,22 @@ function NavLinkItem({ to, icon, label, end, onNavigate }) {
 export default function App() {
   const { pathname } = useLocation()
   const reduce = useReducedMotion()
-  const [menuOpen, setMenuOpen] = useState(false)
   const inTask = pathname.startsWith('/tasks/')
-
-  const closeMenu = () => setMenuOpen(false)
 
   return (
     <div className="relative flex min-h-dvh flex-col">
       <div className="aurora" aria-hidden="true" />
 
-      {/* Desktop side rail — glass, floating */}
+      {/* Desktop side rail — full-height, anchored, aligned with content */}
       <motion.aside
         initial={reduce ? false : { opacity: 0, x: -24 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5, ease: EASE }}
-        className="fixed left-5 top-1/2 z-30 hidden w-60 -translate-y-1/2 flex-col  glass p-2.5 lg:flex"
+        transition={{ duration: 0.45, ease: EASE }}
+        className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-surface/80 backdrop-blur-xl lg:flex"
       >
-        <div className="px-3.5 pb-3 pt-3.5">
+        <div className="px-5 pb-4 pt-6">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center  bg-gradient-to-br from-accent to-accent-2">
+            <span className="flex h-8 w-8 items-center justify-center bg-gradient-to-br from-accent to-accent-2">
               <svg aria-hidden="true" className="h-4.5 w-4.5 text-accent-ink" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
                 <path strokeLinecap="round" strokeLinejoin="round" d={ICONS.bolt} />
               </svg>
@@ -73,11 +69,13 @@ export default function App() {
             <span className="font-display text-sm font-semibold tracking-tight">Blasted Studio</span>
           </div>
         </div>
-        <nav className="flex-1 space-y-1" aria-label="Primary">
+
+        <nav className="flex-1 space-y-1 px-3" aria-label="Primary">
           <NavLinkItem to="/" end icon={ICONS.task} label="New task" />
           <NavLinkItem to="/history" icon={ICONS.history} label="Run history" />
         </nav>
-        <div className="mt-3  bg-bg-2/70 px-3.5 py-3">
+
+        <div className="border-t border-line px-5 py-4">
           <p className="text-xs leading-relaxed text-ink-3">
             Every task runs inside an isolated, disposable sandbox.
           </p>
@@ -85,18 +83,18 @@ export default function App() {
         </div>
       </motion.aside>
 
-      {/* Main column */}
-      <div className="flex min-h-dvh flex-1 flex-col lg:pl-72">
+      {/* Main column — left padding matches sidebar width (w-64 = 16rem) */}
+      <div className="flex min-h-dvh flex-1 flex-col lg:pl-64">
         {/* Mobile top bar — floating glass */}
         <motion.header
           initial={reduce ? false : { opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: EASE }}
-          className="sticky top-3 z-30 mx-3 mt-3  glass px-4 safe-top lg:hidden"
+          className="sticky top-3 z-30 mx-3 mt-3 glass px-4 safe-top lg:hidden"
         >
           <div className="flex h-14 items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 items-center justify-center  bg-gradient-to-br from-accent to-accent-2">
+              <span className="flex h-8 w-8 items-center justify-center bg-gradient-to-br from-accent to-accent-2">
                 <svg aria-hidden="true" className="h-4.5 w-4.5 text-accent-ink" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
                   <path strokeLinecap="round" strokeLinejoin="round" d={ICONS.bolt} />
                 </svg>
@@ -105,8 +103,8 @@ export default function App() {
                 {inTask ? 'Task detail' : 'Blasted Studio'}
               </span>
             </div>
-            <span className="inline-flex items-center gap-1.5  border border-ok/30 bg-ok-soft px-2.5 py-1 text-[11px] font-semibold text-ok">
-              <span aria-hidden="true" className="h-1.5 w-1.5  bg-ok" />
+            <span className="inline-flex items-center gap-1.5 border border-ok/30 bg-ok-soft px-2.5 py-1 text-[11px] font-semibold text-ok">
+              <span aria-hidden="true" className="h-1.5 w-1.5 bg-ok" />
               sandboxed
             </span>
           </div>
@@ -132,9 +130,9 @@ export default function App() {
 
         {/* Mobile floating tab bar */}
         <nav aria-label="Primary" className="fixed bottom-3 left-3 right-3 z-30 lg:hidden">
-          <div className="mx-auto flex max-w-md items-stretch gap-1  glass p-1.5 safe-bottom">
-            <NavLinkItem to="/" end icon={ICONS.task} label="New" onNavigate={closeMenu} />
-            <NavLinkItem to="/history" icon={ICONS.history} label="History" onNavigate={closeMenu} />
+          <div className="mx-auto flex max-w-md items-stretch gap-1 glass p-1.5 safe-bottom">
+            <NavLinkItem to="/" end icon={ICONS.task} label="New" />
+            <NavLinkItem to="/history" icon={ICONS.history} label="History" />
           </div>
         </nav>
       </div>

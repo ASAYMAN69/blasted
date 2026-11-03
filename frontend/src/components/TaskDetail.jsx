@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getTask } from '../api.js'
 import ArtifactViewer from './ArtifactViewer.jsx'
+import ParsedResult from './ParsedResult.jsx'
 import TaskProgress from './TaskProgress.jsx'
 import { EASE, EmptyState, ErrorState, Panel, Spinner } from './ui.jsx'
 
@@ -101,6 +102,8 @@ export default function TaskDetail() {
       </div>
 
       <TaskProgress taskId={id} initial={initial} onTerminal={handleTerminal} />
+
+      <ParsedResult parsed={result?.parsed || initial.parsed} summary={result?.summary || initial.summary} />
 
       <ArtifactViewer taskId={id} artifacts={result?.artifacts || initial.artifacts || []} />
     </motion.div>

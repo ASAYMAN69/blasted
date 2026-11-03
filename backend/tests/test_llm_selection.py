@@ -21,6 +21,10 @@ def _base(**overrides) -> Settings:
         vultr_llm_enabled=False,
         vultr_llm_api_key="",
         vultr_llm_model="",
+        # Explicitly empty so ambient .env values never leak into selection tests.
+        ollama_api_key="",
+        ollama_api_base="https://ollama.com",
+        ollama_model="gemma4:31b-cloud",
         sandbox_memory="512m",
         sandbox_cpus="0.5",
         sandbox_timeout_s=20,
