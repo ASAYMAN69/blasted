@@ -28,6 +28,24 @@ def health() -> dict:
     return {"status": "ok"}
 
 
+@app.get("/api/version")
+def version() -> dict:
+    """Deployed revision + app version (useful for verifying CD)."""
+    import subprocess
+
+    sha = "dev"
+    try:
+        sha = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout.strip() or "dev"
+    except Exception:
+        pass
+    return {"app": "sandboxed-agent-studio", "version": "0.1.0", "sha": sha}
+
+
 # Serve built frontend static files if present.
 _frontend_dist = Path("frontend/dist")
 if _frontend_dist.is_dir():
