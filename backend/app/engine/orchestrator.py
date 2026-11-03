@@ -5,6 +5,7 @@ contract (CONTEXT/CONTRACTS.md §4) — shape them as specified, implement the l
 """
 from __future__ import annotations
 
+import ast
 import json
 import uuid
 from datetime import datetime
@@ -32,12 +33,35 @@ class RunResult(BaseModel):
     parsed: dict | None = None  # structured answer extracted from sandbox stdout
 
 
+def _coerce_dict(payload: str) -> dict | None:
+    """Parse a verdict payload as JSON, falling back to a Python literal.
+
+    Models sometimes emit single-quoted Python dicts
+    (e.g. `{'changed': True, 'run_ok': True}`) instead of strict JSON —
+    tolerate both.
+    """
+    if not payload:
+        return None
+    try:
+        value = json.loads(payload)
+    except json.JSONDecodeError:
+        value = None
+    if isinstance(value, dict):
+        return value
+    try:
+        value = ast.literal_eval(payload)
+    except (ValueError, SyntaxError):
+        return None
+    return value if isinstance(value, dict) else None
+
+
 def extract_parsed(stdout: str) -> dict | None:
     """Pull the machine-verifiable JSON block out of sandbox stdout.
 
     Mirrors the modes' RESULT_JSON / verdict marker contracts: look for a line
-    that begins with a known marker and parse the trailing JSON; fall back to
-    the first balanced JSON object anywhere in stdout.
+    that begins with a known marker and parse the trailing object (JSON or a
+    Python dict literal); fall back to the first balanced JSON object anywhere
+    in stdout.
     """
     text = (stdout or "").strip()
     if not text:
@@ -47,11 +71,8 @@ def extract_parsed(stdout: str) -> dict | None:
         idx = text.rfind(marker)
         if idx != -1:
             payload = text[idx + len(marker):].strip()
-            try:
-                value = json.loads(payload)
-            except json.JSONDecodeError:
-                value = None
-            if isinstance(value, dict):
+            value = _coerce_dict(payload)
+            if value is not None:
                 return value
 
     # last-resort: first balanced { ... } block
@@ -80,7 +101,7 @@ def extract_parsed(stdout: str) -> dict | None:
                     try:
                         value = json.loads(text[start:i + 1])
                     except json.JSONDecodeError:
-                        return None
+                        value = ast.literal_eval(text[start:i + 1])
                     return value if isinstance(value, dict) else None
     return None
 
