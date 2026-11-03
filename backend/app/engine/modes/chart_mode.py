@@ -19,7 +19,17 @@ from backend.app.sandbox.manager import ExecutionResult
 _INPUT_DATA_PATH = "/workspace/data.csv"  # CSV preview; JSON can also be read via pandas.read_json
 _STDERR_TAIL_CHARS = 400
 
-# System hints for the model
+# Visual customization presets (hex palettes + chart kinds) offered to the UI.
+PALETTES: dict[str, list[str]] = {
+    "aurora": ["#7aa2f7", "#bb9af7", "#7dcfff", "#73daca", "#ff9e64", "#f7768e"],
+    "cobalt": ["#1d4ed8", "#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe"],
+    "emerald": ["#065f46", "#047857", "#059669", "#10b981", "#34d399", "#6ee7b7"],
+    "ember": ["#7c2d12", "#9a3412", "#c2410c", "#ea580c", "#f97316", "#fb923c"],
+    "mono": ["#1f2937", "#374151", "#4b5563", "#6b7280", "#9ca3af", "#d1d5db"],
+}
+
+CHART_KINDS = ["auto", "bar", "line", "scatter", "histogram", "pie", "box"]
+
 _SYSTEM_HINT = (
     "You are a chart‑generation planner for a sandboxed Python runner. "
     "The sandbox provides pandas, numpy, matplotlib (Agg backend pre‑selected), and plotly. "
@@ -41,6 +51,7 @@ class ChartMode:
     The mode follows the contract from `backend/app/engine/modes/base.py`.
     It accepts a `data` string (CSV or JSON) and a `request` describing the visualization.
     An optional `format` selects PNG (matplotlib) or HTML (plotly) output.
+    Optional `palette` / `chart_type` control visual styling.
     """
 
     name = "chart"
@@ -50,9 +61,32 @@ class ChartMode:
             "data": {"type": "string", "title": "CSV/JSON data"},
             "request": {"type": "string", "title": "What to visualize"},
             "format": {"type": "string", "enum": ["png", "html"], "default": "png"},
+            "palette": {
+                "type": "string",
+                "enum": list(PALETTES.keys()),
+                "default": "aurora",
+                "title": "Color palette",
+            },
+            "chart_type": {
+                "type": "string",
+                "enum": CHART_KINDS,
+                "default": "auto",
+                "title": "Chart type",
+            },
         },
         "required": ["data", "request"],
     }
+
+    @staticmethod
+    def _palette_hex(task: Task) -> list[str]:
+        """Resolve the chosen palette to concrete hex values."""
+        name = task.inputs.get("palette", "aurora")
+        return PALETTES.get(name, PALETTES["aurora"])
+
+    @staticmethod
+    def _chart_kind(task: Task) -> str:
+        kind = task.inputs.get("chart_type", "auto")
+        return kind if kind in CHART_KINDS else "auto"
 
     # -----------------------------------------------------------------
     # helpers
@@ -104,12 +138,14 @@ class ChartMode:
         request = str(task.inputs.get("request", "")).strip()
         data_preview = self._preview(self._data_text(task))
         fmt = task.inputs.get("format", "png")
+        kind = self._chart_kind(task)
         return (
             f"{_SYSTEM_HINT}\n\n"
             f"Plan the steps required to create the requested visualization.\n"
             f"\n"
             f"REQUEST: {request}\n"
             f"OUTPUT FORMAT: {fmt}\n"
+            f"CHART TYPE: {kind} (use 'auto' only when a single obvious kind fits)\n"
             f"\n"
             f"DATA PREVIEW (first ~20 rows / entries):\n{data_preview}\n"
             f"\n"
@@ -127,10 +163,15 @@ class ChartMode:
         fmt = task.inputs.get("format", "png").strip().lower()
         artifact_name = "chart.png" if fmt == "png" else "chart.html"
         data_preview = self._preview(self._data_text(task))
+        hexes = self._palette_hex(task)
+        kind = self._chart_kind(task)
+        palette_line = ", ".join(hexes)
         return (
             f"{_CODE_SYSTEM_HINT}\n\n"
             f"REQUEST: {request}\n"
             f"OUTPUT FORMAT: {fmt}\n"
+            f"CHART TYPE: {kind} (use 'auto' only when a single obvious kind fits)\n"
+            f"COLOR PALETTE (use these exact hex colors for data series, in order): {palette_line}\n"
             f"\n"
             f"PLAN:\n{plan}\n"
             f"\n"
@@ -144,6 +185,8 @@ class ChartMode:
             "5. Use `print(..., file=sys.stderr)` for any debug/info; stdout must stay empty.\n"
             "6. Do NOT call plt.show() or open a browser.\n"
             "7. Do NOT perform any network requests or write files outside /workspace.\n"
+            '8. Apply the chosen COLOR PALETTE: for matplotlib pass the hex list directly (e.g. plt.bar(..., color=[...])); for plotly use marker/color arrays with the same hex values.\n'
+            "9. If the CHART TYPE is not 'auto', render exactly that kind (bar/line/scatter/histogram/pie/box). If 'auto', pick the most appropriate single kind.\n"
             "\n"
             "Output ONLY the raw Python code, no markdown fences or explanations."
         )
@@ -177,4 +220,3 @@ class ChartMode:
             ok=False,
             reason="exit 0 but no chart artifact (chart.png or chart.html) was produced",
         )
-

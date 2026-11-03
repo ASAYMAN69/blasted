@@ -12,6 +12,7 @@ from typing import Any
 
 from backend.app.engine.orchestrator import Task
 from backend.app.engine.modes.base import Verification
+from backend.app.engine.modes.chart_mode import CHART_KINDS, PALETTES
 from backend.app.sandbox.manager import ExecutionResult
 
 # Marker the generated script must print at the end of stdout, followed by one
@@ -55,6 +56,18 @@ class CsvMode:
                 "type": "string",
                 "minLength": 1,
                 "description": "Natural-language question about the CSV data",
+            },
+            "palette": {
+                "type": "string",
+                "enum": list(PALETTES.keys()),
+                "default": "aurora",
+                "title": "Color palette",
+            },
+            "chart_type": {
+                "type": "string",
+                "enum": CHART_KINDS,
+                "default": "auto",
+                "title": "Chart type",
             },
         },
         "required": ["file", "question"],
@@ -107,6 +120,10 @@ class CsvMode:
         """
         question = str(task.inputs.get("question", "")).strip()
         csv_preview = _preview(self._csv_text(task))
+        hexes = PALETTES.get(task.inputs.get("palette", "aurora"), PALETTES["aurora"])
+        kind = task.inputs.get("chart_type", "auto")
+        kind = kind if kind in CHART_KINDS else "auto"
+        palette_line = ", ".join(hexes)
         return (
             "Write a complete Python script that answers a question about a CSV file.\n"
             "\n"
@@ -135,6 +152,10 @@ class CsvMode:
             "(figures are copied out as artifacts automatically).\n"
             "7. No network, no shell commands, no file writes outside /workspace, "
             "and never write back into " + INPUT_CSV_PATH + ".\n"
+            "8. Chart styling (when a chart is produced): use these exact hex colors "
+            "for series, in order: " + palette_line + ". Chart kind: " + kind + " "
+            "(use 'auto' only when a single obvious kind fits; otherwise render "
+            "exactly bar/line/scatter/histogram/pie/box).\n"
             "\n"
             "Column names must be taken from the CSV preview (inspect "
             "df.columns/list(df) first if unsure). If a numeric column contains "
