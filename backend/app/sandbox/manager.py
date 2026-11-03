@@ -86,13 +86,20 @@ class SandboxManager:
         host_tmp = tempfile.mkdtemp(prefix="sandbox-ws-")
         try:
             ws = Path(host_tmp)
+            # The container runs as the unprivileged `runner` user, whose UID
+            # differs from the service user on the host. Make the workspace and
+            # its files readable/writable so the sandbox can consume them and
+            # write artifacts back (no secrets ever live here).
+            os.chmod(ws, 0o777)
             # write user files first
             for name, content in (files or {}).items():
                 target = ws / name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_text(content, encoding="utf-8")
+                os.chmod(target, 0o666)
             # runner script (avoid colliding with user files)
             (ws / "_run.py").write_text(code, encoding="utf-8")
+            os.chmod(ws / "_run.py", 0o666)
 
             cpu_quota = int(float(self._settings.sandbox_cpus) * 1_000_000_000)
             container = self._client.containers.create(
