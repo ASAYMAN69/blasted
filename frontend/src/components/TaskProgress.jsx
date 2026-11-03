@@ -4,6 +4,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { taskEvents } from '../api.js'
+import Markdown from './Markdown.jsx'
 import { EASE, ErrorState, Panel, PanelHeader, Spinner, StatusBadge } from './ui.jsx'
 
 const TERMINAL = new Set(['passed', 'failed'])
@@ -116,9 +117,9 @@ export default function TaskProgress({ taskId, initial, onTerminal }) {
                   <span className="mt-0.5 flex-none font-mono text-[10px] uppercase tracking-wider text-ink-3">
                     try {i + 1}
                   </span>
-                  <span className="min-w-0 flex-1 truncate font-mono text-xs leading-relaxed text-ink-2" title={s}>
-                    {s.length > 180 ? `${s.slice(0, 180)}…` : s}
-                  </span>
+                  <div className="min-w-0 flex-1">
+                    <Markdown text={s.length > 600 ? `${s.slice(0, 600)}…` : s} size="sm" />
+                  </div>
                 </motion.li>
               ))}
             </motion.ol>
