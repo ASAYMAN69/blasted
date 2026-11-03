@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { listModes, submitTask } from '../api.js'
+import QuickActions from './QuickActions.jsx'
 import { EASE, ErrorState, Panel, Spinner } from './ui.jsx'
 
 const FILE_KEYS = new Set(['file', 'data', 'test', 'code'])
@@ -304,12 +305,21 @@ export default function TaskForm() {
                       }
                       if (isFile) {
                         return (
-                          <div key={key}>
-                            <label htmlFor={id} className="label">
-                              {label}
-                              {required.has(key) ? <span className="text-danger"> *</span> : null}
-                            </label>
-                            <UploadField id={id} value={inputs[key]} onChange={(v) => setField(key, v)} placeholder={placeholder} description={prop.description} />
+                          <div key={key} className="space-y-3">
+                            <div>
+                              <label htmlFor={id} className="label">
+                                {label}
+                                {required.has(key) ? <span className="text-danger"> *</span> : null}
+                              </label>
+                              <UploadField id={id} value={inputs[key]} onChange={(v) => setField(key, v)} placeholder={placeholder} description={prop.description} />
+                            </div>
+                            {mode === 'csv' && key === 'file' ? (
+                              <QuickActions
+                                csvText={inputs[key]}
+                                disabled={submitting}
+                                onPick={(q) => setField('question', q)}
+                              />
+                            ) : null}
                           </div>
                         )
                       }
