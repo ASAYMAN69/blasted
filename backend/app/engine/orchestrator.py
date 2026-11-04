@@ -347,7 +347,10 @@ class Orchestrator:
                 plan_prompt = mode.build_plan_prompt(task)
                 if last_error:
                     plan_prompt = plan_prompt + "\n\nPrevious error:\n" + last_error
-                plan = self._llm.generate(plan_prompt)
+                plan = self._llm.generate(
+                    plan_prompt,
+                    system="You are a data-analysis planner. Output ONLY the numbered plan, no code, no commentary.",
+                )
 
                 code_prompt = mode.build_code_prompt(task, plan)
                 if last_error:
@@ -357,7 +360,10 @@ class Orchestrator:
                         + last_error
                         + "\nFix the code accordingly."
                     )
-                raw_code = self._llm.generate(code_prompt)
+                raw_code = self._llm.generate(
+                    code_prompt,
+                    system="You are a code generator. Output ONLY raw Python code. No explanations, no commentary, no markdown fences. Just executable code.",
+                )
                 code = self._sanitize_code(raw_code)
 
                 files = self._build_files(task)
@@ -373,11 +379,10 @@ class Orchestrator:
                     status = "passed"
                     try:
                         summary = self._llm.generate(
-                            "You are a terse status reporter. Summarize the successful run "
-                            "in ONE plain-text sentence, no markdown, no code, under 25 words. "
-                            "Mention the fix if one was applied.\n"
+                            "Summarize the successful run in one sentence.\n"
                             f"stdout:\n{exec_result.stdout}\n"
-                            f"stderr:\n{exec_result.stderr}"
+                            f"stderr:\n{exec_result.stderr}",
+                            system="You are a terse status reporter. Output ONE plain-text sentence, no markdown, under 25 words.",
                         )
                     except Exception:
                         summary = getattr(verification, "reason", "") or "passed"
@@ -415,9 +420,8 @@ class Orchestrator:
         status = "failed"
         try:
             summary = self._llm.generate(
-                "You are a terse status reporter. Explain the failure in ONE plain-text "
-                "sentence, no markdown, no code, under 25 words.\n"
-                f"{last_error or ''}"
+                f"Explain the failure.\n{last_error or ''}",
+                system="You are a terse status reporter. Output ONE plain-text sentence, no markdown, under 25 words.",
             )
         except Exception:
             summary = last_error or "failed"
