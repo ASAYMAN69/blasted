@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     vultr_llm_enabled: bool = False
     vultr_llm_api_key: str = ""
     vultr_llm_model: str = ""
+    vultr_llm_api_base: str = "https://api.vultrinference.com/v1"
 
     # Sandbox limits
     sandbox_memory: str = "512m"

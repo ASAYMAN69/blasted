@@ -58,16 +58,14 @@ def test_vultr_enabled_with_key_returns_vultr():
     assert client.provider_name == "vultr"
 
 
-def test_vultr_client_gates_on_enabled_flag():
-    with pytest.raises(RuntimeError, match="disabled stub"):
+def test_vultr_client_requires_key():
+    with pytest.raises(LLMError, match="VULTR_LLM_API_KEY"):
         VultrLLMClient(_base())
 
 
 def test_vultr_client_requires_model():
-    with pytest.raises(RuntimeError, match="VULTR_LLM_MODEL"):
-        VultrLLMClient(
-            _base(vultr_llm_enabled=True, vultr_llm_api_key="vk")
-        )
+    with pytest.raises(LLMError, match="VULTR_LLM_MODEL"):
+        VultrLLMClient(_base(vultr_llm_api_key="vk"))
 
 
 def test_openrouter_client_requires_key():
