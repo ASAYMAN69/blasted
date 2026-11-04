@@ -17,6 +17,30 @@ from pydantic import BaseModel
 
 from backend.app.sandbox.manager import ExecutionResult
 
+# Re-exported for the frozen modes/base.py contract (which imports
+# ExecutionResult from this module). Do not remove.
+
+# Re-exported for the frozen modes/base.py contract (which imports
+# ExecutionResult from this module). Do not remove.
+
+
+def _safe_filename(name: str) -> str:
+    """Reduce a user-supplied filename to a safe basename.
+
+    Rejects path separators, traversal segments, and empty/hidden names so
+    that sandbox file writes can never escape the workspace directory.
+    Returns the basename only; raises ValueError on anything unsafe.
+    """
+    if not isinstance(name, str) or not name:
+        raise ValueError("empty filename")
+    # Reject anything that looks like a path (no reduction to basename).
+    if "/" in name or "\\" in name:
+        raise ValueError(f"unsafe filename (path separator): {name!r}")
+    base = name
+    if base in ("", ".", "..") or base.startswith("."):
+        raise ValueError(f"unsafe filename: {name!r}")
+    return base
+
 
 class Task(BaseModel):
     id: str
@@ -102,7 +126,10 @@ def extract_parsed(stdout: str) -> dict | None:
                     try:
                         value = json.loads(text[start:i + 1])
                     except json.JSONDecodeError:
-                        value = ast.literal_eval(text[start:i + 1])
+                        try:
+                            value = ast.literal_eval(text[start:i + 1])
+                        except (ValueError, SyntaxError):
+                            return None
                     return value if isinstance(value, dict) else None
     return None
 
@@ -188,7 +215,12 @@ class Orchestrator:
         if isinstance(inputs.get("files"), dict):
             for k, v in inputs["files"].items():
                 if isinstance(v, str):
-                    files[str(k)] = v
+                    try:
+                        files[_safe_filename(k)] = v
+                    except ValueError:
+                        # Skip unsafe filenames silently; the sandbox only ever
+                        # sees basenames.
+                        pass
         # Mode-aware input filenames (must match each mode's generated scripts):
         #   csv  -> /workspace/input.csv   (CsvMode reads INPUT_CSV_PATH)
         #   coder -> /workspace/input_file  (wrapper copies to input_file.py)
@@ -204,6 +236,8 @@ class Orchestrator:
         for key in ("file", "data", "test", "code"):
             val = inputs.get(key)
             if isinstance(val, str):
+                # Convenience keys map to fixed safe names; ignore user-supplied
+                # overrides here (they go through the `files` dict above).
                 files[mapping.get(key, key)] = val
         return files
 

@@ -21,6 +21,23 @@ except ImportError:  # running from repo root as backend.app.sandbox
     from backend.app.config import get_settings
 
 
+def _safe_filename(name: str) -> str:
+    """Reduce a user-supplied filename to a safe basename.
+
+    Rejects path separators, traversal segments, and empty/hidden names so
+    that sandbox file writes can never escape the workspace directory.
+    Returns the basename only; raises ValueError on anything unsafe.
+    """
+    if not isinstance(name, str) or not name:
+        raise ValueError("empty filename")
+    if "/" in name or "\\" in name:
+        raise ValueError(f"unsafe filename (path separator): {name!r}")
+    base = name
+    if base in ("", ".", "..") or base.startswith("."):
+        raise ValueError(f"unsafe filename: {name!r}")
+    return base
+
+
 class ExecutionResult(BaseModel):
     stdout: str
     stderr: str
@@ -96,9 +113,15 @@ class SandboxManager:
             # its files readable/writable so the sandbox can consume them and
             # write artifacts back (no secrets ever live here).
             os.chmod(ws, 0o777)
-            # write user files first
+            # write user files first — validate every name against the workspace
             for name, content in (files or {}).items():
-                target = ws / name
+                try:
+                    safe = _safe_filename(name)
+                except ValueError:
+                    # Skip unsafe filenames; the orchestrator already filters,
+                    # but this is defense-in-depth.
+                    continue
+                target = ws / safe
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_text(content, encoding="utf-8")
                 os.chmod(target, 0o666)
@@ -168,7 +191,14 @@ class SandboxManager:
                 out_root = Path(artifact_out_dir)
                 out_root.mkdir(parents=True, exist_ok=True)
                 for name in artifacts:
-                    shutil.copy2(ws / name, out_root / name)
+                    # Defense-in-depth: only copy basenames, never traversal.
+                    try:
+                        safe = _safe_filename(name)
+                    except ValueError:
+                        continue
+                    src = ws / safe
+                    if src.is_file():
+                        shutil.copy2(src, out_root / safe)
 
             return ExecutionResult(
                 stdout=stdout_b.decode("utf-8", "replace"),
