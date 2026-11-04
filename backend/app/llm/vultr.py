@@ -1,35 +1,30 @@
-"""Vultr Serverless Inference LLM client — DISABLED stub.
+"""Vultr Serverless Inference LLM client (OpenAI-compatible).
 
-Endpoint (from hackathon brief): https://api.vultrinference.com/v1 (OpenAI-compatible).
-This implementation is complete in structure but gated: it raises unless
-VULTR_LLM_ENABLED=true. TODO(enable): confirm Vultr's auth-header format and model-ID
-list from their docs, then un-gate and verify against a live key.
+Endpoint: https://api.vultrinference.com/v1  (OpenAI-compatible, per hackathon brief)
+This is the REQUIRED LLM provider for Challenge 1. It becomes the primary
+provider whenever VULTR_LLM_API_KEY is set.
 """
 import json
 
+from openai import OpenAI
+
 from backend.app.config import Settings
 from backend.app.llm.base import LLMError
-from openai import OpenAI
+
+_DEFAULT_ENDPOINT = "https://api.vultrinference.com/v1"
 
 
 class VultrLLMClient:
     provider_name = "vultr"
-    _endpoint = "https://api.vultrinference.com/v1"
 
     def __init__(self, settings: Settings):
-        if not settings.vultr_llm_enabled:
-            raise RuntimeError(
-                "Vultr LLM is a disabled stub. Set VULTR_LLM_ENABLED=true "
-                "and provide VULTR_LLM_API_KEY to enable."
-            )
         if not settings.vultr_llm_api_key:
-            raise RuntimeError("VULTR_LLM_API_KEY is not set")
+            raise LLMError("VULTR_LLM_API_KEY is not set")
         if not settings.vultr_llm_model:
-            raise RuntimeError("VULTR_LLM_MODEL is not set")
-        # TODO(enable): confirm Vultr's auth-header format and model-ID list.
+            raise LLMError("VULTR_LLM_MODEL is not set")
         self._model = settings.vultr_llm_model
         self._client = OpenAI(
-            base_url=self._endpoint,
+            base_url=settings.vultr_llm_api_base or _DEFAULT_ENDPOINT,
             api_key=settings.vultr_llm_api_key,
         )
 
@@ -49,12 +44,17 @@ class VultrLLMClient:
                 messages=messages,
                 max_tokens=max_tokens,
             )
-        except Exception as exc:  # pragma: no cover - network
+        except Exception as exc:
             raise LLMError(f"vultr generate failed: {exc}") from exc
         choices = getattr(resp, "choices", None) or []
         if not choices:
             return ""
-        content = choices[0].message.content
+        msg = choices[0].message
+        content = getattr(msg, "content", None)
+        if not content:
+            # Some thinking models (glm, deepseek, qwen3) put their answer in
+            # the `reasoning` field and leave `content` empty. Fall back to it.
+            content = getattr(msg, "reasoning", None)
         return (content or "").strip()
 
     def generate_json(self, prompt: str, schema: dict) -> dict:
