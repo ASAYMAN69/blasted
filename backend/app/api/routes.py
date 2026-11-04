@@ -54,6 +54,25 @@ async def create_task(body: TaskCreate) -> Task:
     registry = _mode_registry()
     if body.mode not in registry:
         raise HTTPException(status_code=400, detail=f"unknown mode: {body.mode}")
+
+    # Enforce total input size (configured via MAX_TASK_SIZE_MB).
+    settings = get_settings()
+    limit_bytes = settings.max_task_size_mb * 1024 * 1024
+    total_size = 0
+    if isinstance(body.inputs, dict):
+        for value in body.inputs.values():
+            if isinstance(value, str):
+                total_size += len(value.encode("utf-8"))
+            elif isinstance(value, dict):
+                for v in value.values():
+                    if isinstance(v, str):
+                        total_size += len(v.encode("utf-8"))
+    if total_size > limit_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=f"input too large: {total_size} bytes exceeds limit of {limit_bytes} bytes ({settings.max_task_size_mb}MB)",
+        )
+
     orch = _get_orchestrator()
     return await orch.submit(body.mode, body.inputs)
 
@@ -89,10 +108,19 @@ async def task_events(task_id: str) -> StreamingResponse:
 
 @router.get("/artifacts/{task_id}/{name}")
 async def get_artifact(task_id: str, name: str) -> FileResponse:
-    path = Path("data/artifacts") / task_id / name
-    if not path.is_file():
+    root = Path("data/artifacts").resolve()
+    # Defense-in-depth: reject any path component that could escape the root.
+    # FastAPI already rejects most traversal, but we validate explicitly.
+    if not task_id or not name or "/" in task_id or "\\" in task_id or "/" in name or "\\" in name:
+        raise HTTPException(status_code=400, detail="invalid artifact path")
+    if task_id in ("", ".", "..") or name in ("", ".", ".."):
+        raise HTTPException(status_code=400, detail="invalid artifact path")
+    candidate = (root / task_id / name).resolve()
+    if not candidate.is_relative_to(root):
+        raise HTTPException(status_code=400, detail="invalid artifact path")
+    if not candidate.is_file():
         raise HTTPException(status_code=404, detail="artifact not found")
-    return FileResponse(path)
+    return FileResponse(candidate)
 
 
 @router.get("/modes")
