@@ -40,17 +40,11 @@ def _preview(text: str, max_chars: int = 3000) -> str:
 def _fetch_prompt(task: Task, ctx: dict) -> str:
     sources = _extract_text(task)
     return (
-        "You are a text processor. Write a Python script that reads /workspace/sources.txt "
-        "and splits it into individual documents.\n\n"
+        "You are a text processor. Split the following source texts into individual documents.\n\n"
         f"SOURCES:\n{sources[:3000]}\n\n"
-        "The script must:\n"
-        "1. Read the text from /workspace/sources.txt\n"
-        "2. Split the input by ---SOURCE--- into individual documents\n"
-        "3. For each document, extract the main text content (strip any HTML if present)\n"
-        "4. Print: FETCHED_JSON: {\"sources\": [{\"index\": 0, \"text\": \"...\", \"chars\": N}]}\n"
-        "5. Print debug to stderr only\n"
-        "6. No network, no file writes outside /workspace\n\n"
-        "Output ONLY raw Python code."
+        "Output a JSON object:\n"
+        "{\"sources\": [{\"index\": 0, \"text\": \"<the document text>\", \"chars\": N}]}\n\n"
+        "Output ONLY the JSON."
     )
 
 
@@ -131,24 +125,16 @@ def _crossref_files(task: Task, ctx: dict) -> dict:
 # ── Step 4: Report + Chart ───────────────────────────────────────────────────
 def _report_prompt(task: Task, ctx: dict) -> str:
     crossref = ctx.get("cross_reference", {}).get("stdout", "")
-    palette = task.inputs.get("palette", "aurora")
-    hexes = PALETTES.get(palette, PALETTES["aurora"])
-    palette_line = ", ".join(hexes)
     return (
-        "You are a research analyst. Write a Python script that reads the cross-reference "
-        "results and creates a summary chart + structured report.\n\n"
+        "You are a research analyst. Write a concise research summary based on the "
+        "cross-reference results below.\n\n"
         f"CROSS-REFERENCE:\n{crossref[:3000]}\n\n"
-        f"COLOR PALETTE: {palette_line}\n\n"
-        "The script must:\n"
-        "1. Parse the CROSSREF_JSON from the cross-reference output\n"
-        "2. Create a bar chart: number of claims by category (agreement/contradiction/unique)\n"
-        "3. Save chart to /workspace/chart.png\n"
-        "4. Write a structured report to /workspace/report.json with sections: "
-        "summary, agreements, contradictions, unique_claims, confidence_score\n"
-        "5. Use the COLOR PALETTE for chart colors\n"
-        "6. Print debug to stderr only\n"
-        "7. No network, no file writes outside /workspace\n\n"
-        "Output ONLY raw Python code."
+        "The summary must:\n"
+        "- Summarize the key findings in 3-5 sentences\n"
+        "- List agreements, contradictions, and unique claims\n"
+        "- Give a confidence score (high/medium/low)\n"
+        "- Be plain English, no code, no markdown\n\n"
+        "Output ONLY the summary text."
     )
 
 
@@ -207,14 +193,14 @@ class Vector4Mode(PipelineModeBase):
     }
 
     pipeline_steps = [
-        Step(name="fetch", system_prompt="You are a web researcher. Output ONLY raw Python code.",
-             build_prompt=_fetch_prompt, verify=_fetch_verify, files=_fetch_files, timeout_s=30),
+        Step(name="fetch", system_prompt="You are a text processor. Output ONLY a JSON object.",
+             build_prompt=_fetch_prompt, verify=_fetch_verify, files=_fetch_files, timeout_s=10, text_only=True),
         Step(name="extract_claims", system_prompt="You are a claim extractor. Output ONLY a JSON object.",
              build_prompt=_claims_prompt, verify=_claims_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
         Step(name="cross_reference", system_prompt="You are a cross-reference agent. Output ONLY a JSON object.",
              build_prompt=_crossref_prompt, verify=_crossref_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
-        Step(name="report", system_prompt="You are a research analyst. Output ONLY raw Python code.",
-             build_prompt=_report_prompt, verify=_report_verify, files=_report_files, timeout_s=30),
+        Step(name="report", system_prompt="You are a research analyst. Output ONLY the report text.",
+             build_prompt=_report_prompt, verify=_report_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
         Step(name="summarize", system_prompt="You are a research analyst. Output ONLY the report text.",
              build_prompt=_summarize_prompt, verify=_summarize_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
     ]
