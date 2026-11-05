@@ -72,18 +72,14 @@ def _fetch_files(task: Task, ctx: dict) -> dict:
 def _claims_prompt(task: Task, ctx: dict) -> str:
     fetched = ctx.get("fetch", {}).get("stdout", "")
     return (
-        "You are a claim extractor. Write a Python script that reads the fetched "
-        "source text and extracts key claims from each source.\n\n"
-        f"FETCHED SOURCES:\n{fetched[:4000]}\n\n"
-        "The script must:\n"
-        "1. For each source, split text into sentences\n"
-        "2. Extract: statistics (numbers with units), dates, named entities, "
-        "direct quotes, and key factual statements\n"
-        "3. Print: CLAIMS_JSON: {\"sources\": [{\"url\": \"...\", \"claims\": "
-        "[{\"text\": \"...\", \"type\": \"stat|date|entity|quote|fact\", \"value\": \"...\"}]}]}\n"
-        "4. Print debug to stderr only\n"
-        "5. No network, no file writes outside /workspace\n\n"
-        "Output ONLY raw Python code."
+        "You are a claim extractor. Extract key claims from each source below.\n\n"
+        f"SOURCES:\n{fetched[:4000]}\n\n"
+        "For each source, extract: statistics (numbers with units), dates, named "
+        "entities, direct quotes, and key factual statements.\n\n"
+        "Output a JSON object:\n"
+        "{\"sources\": [{\"index\": 0, \"claims\": "
+        "[{\"text\": \"...\", \"type\": \"stat|date|entity|quote|fact\", \"value\": \"...\"}]}]}\n\n"
+        "Output ONLY the JSON."
     )
 
 
@@ -105,21 +101,16 @@ def _claims_files(task: Task, ctx: dict) -> dict:
 def _crossref_prompt(task: Task, ctx: dict) -> str:
     claims = ctx.get("extract_claims", {}).get("stdout", "")
     return (
-        "You are a cross-reference agent. Write a Python script that compares "
-        "claims across sources and identifies agreements and contradictions.\n\n"
+        "You are a cross-reference agent. Compare claims across sources and identify "
+        "agreements and contradictions.\n\n"
         f"CLAIMS:\n{claims[:4000]}\n\n"
-        "The script must:\n"
-        "1. Compare claims across sources using string similarity and number matching\n"
-        "2. Identify: agreements (2+ sources say the same thing), contradictions "
-        "(sources disagree on a fact), unique claims (only one source mentions it)\n"
-        "3. Print: CROSSREF_JSON: {\"agreements\": [{\"claim\": \"...\", \"sources\": [...], "
+        "Output a JSON object:\n"
+        "{\"agreements\": [{\"claim\": \"...\", \"sources\": [...], "
         "\"confidence\": 0.0}], \"contradictions\": [{\"claim_a\": \"...\", \"claim_b\": \"...\", "
         "\"source_a\": \"...\", \"source_b\": \"...\", \"explanation\": \"...\"}], "
-        "\"unique\": [{\"claim\": \"...\", \"source\": \"...\"}], \"summary\": {\"total_claims\": N, "
-        "\"agreements\": N, \"contradictions\": N, \"unique\": N}}\n"
-        "4. Print debug to stderr only\n"
-        "5. No network, no file writes outside /workspace\n\n"
-        "Output ONLY raw Python code."
+        "\"unique\": [{\"claim\": \"...\", \"source\": \"...\"}], "
+        "\"summary\": {\"total_claims\": N, \"agreements\": N, \"contradictions\": N, \"unique\": N}}\n\n"
+        "Output ONLY the JSON."
     )
 
 
@@ -218,10 +209,10 @@ class Vector4Mode(PipelineModeBase):
     pipeline_steps = [
         Step(name="fetch", system_prompt="You are a web researcher. Output ONLY raw Python code.",
              build_prompt=_fetch_prompt, verify=_fetch_verify, files=_fetch_files, timeout_s=30),
-        Step(name="extract_claims", system_prompt="You are a claim extractor. Output ONLY raw Python code.",
-             build_prompt=_claims_prompt, verify=_claims_verify, files=_claims_files, timeout_s=30),
-        Step(name="cross_reference", system_prompt="You are a cross-reference agent. Output ONLY raw Python code.",
-             build_prompt=_crossref_prompt, verify=_crossref_verify, files=_crossref_files, timeout_s=30),
+        Step(name="extract_claims", system_prompt="You are a claim extractor. Output ONLY a JSON object.",
+             build_prompt=_claims_prompt, verify=_claims_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
+        Step(name="cross_reference", system_prompt="You are a cross-reference agent. Output ONLY a JSON object.",
+             build_prompt=_crossref_prompt, verify=_crossref_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
         Step(name="report", system_prompt="You are a research analyst. Output ONLY raw Python code.",
              build_prompt=_report_prompt, verify=_report_verify, files=_report_files, timeout_s=30),
         Step(name="summarize", system_prompt="You are a research analyst. Output ONLY the report text.",
