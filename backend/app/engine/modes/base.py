@@ -35,6 +35,7 @@ class Step:
     timeout_s: int = 60
     max_retries: int = 3
     text_only: bool = False
+    max_tokens: int = 2048
 
 
 class Mode(Protocol):
