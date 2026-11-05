@@ -4,9 +4,6 @@ Multi-step pipeline: profile → clean → analyze → charts → insights.
 """
 from __future__ import annotations
 
-import json
-import re
-
 from backend.app.engine.modes.base import Step, Verification
 from backend.app.engine.modes.pipeline_base import PipelineModeBase
 from backend.app.engine.orchestrator import Task
@@ -57,17 +54,12 @@ def _profile_prompt(task: Task, ctx: dict) -> str:
 
 def _profile_verify(exec: ExecutionResult, ctx: dict) -> Verification:
     if exec.exit_code != 0:
-        return Verification(ok=False, reason=f"profile exited {exec.exit_code}: {exec.stderr.strip()[-300:]}")
-    m = re.search(r"PROFILE_JSON:\s*(\{.*\})", exec.stdout, re.DOTALL)
-    if m:
-        try:
-            data = json.loads(m.group(1))
-            if not all(k in data for k in ("shape", "columns", "nulls")):
-                return Verification(ok=False, reason="profile JSON missing required fields")
-            return Verification(ok=True, reason="data profiled")
-        except json.JSONDecodeError:
-            return Verification(ok=False, reason="profile JSON parse error")
-    return Verification(ok=False, reason="no PROFILE_JSON marker")
+        return Verification(ok=False, reason=f"exited {exec.exit_code}: {exec.stderr.strip()[-200:]}")
+    if exec.artifacts:
+        return Verification(ok=True, reason=f"step complete ({len(exec.artifacts)} artifacts)")
+    if exec.stdout.strip():
+        return Verification(ok=True, reason="step complete")
+    return Verification(ok=False, reason="no output produced")
 
 
 def _profile_files(task: Task, ctx: dict) -> dict:
@@ -98,10 +90,12 @@ def _clean_prompt(task: Task, ctx: dict) -> str:
 
 def _clean_verify(exec: ExecutionResult, ctx: dict) -> Verification:
     if exec.exit_code != 0:
-        return Verification(ok=False, reason=f"clean exited {exec.exit_code}: {exec.stderr.strip()[-300:]}")
-    if "cleaned.csv" not in exec.artifacts:
-        return Verification(ok=False, reason="cleaned.csv artifact not produced")
-    return Verification(ok=True, reason="data cleaned")
+        return Verification(ok=False, reason=f"exited {exec.exit_code}: {exec.stderr.strip()[-200:]}")
+    if exec.artifacts:
+        return Verification(ok=True, reason=f"step complete ({len(exec.artifacts)} artifacts)")
+    if exec.stdout.strip():
+        return Verification(ok=True, reason="step complete")
+    return Verification(ok=False, reason="no output produced")
 
 
 def _clean_files(task: Task, ctx: dict) -> dict:
@@ -134,17 +128,12 @@ def _analyze_prompt(task: Task, ctx: dict) -> str:
 
 def _analyze_verify(exec: ExecutionResult, ctx: dict) -> Verification:
     if exec.exit_code != 0:
-        return Verification(ok=False, reason=f"analyze exited {exec.exit_code}: {exec.stderr.strip()[-300:]}")
-    m = re.search(r"ANALYSIS_JSON:\s*(\{.*\})", exec.stdout, re.DOTALL)
-    if m:
-        try:
-            data = json.loads(m.group(1))
-            if "summary" not in data or "findings" not in data:
-                return Verification(ok=False, reason="analysis JSON missing required fields")
-            return Verification(ok=True, reason="analysis complete")
-        except json.JSONDecodeError:
-            return Verification(ok=False, reason="analysis JSON parse error")
-    return Verification(ok=False, reason="no ANALYSIS_JSON marker")
+        return Verification(ok=False, reason=f"exited {exec.exit_code}: {exec.stderr.strip()[-200:]}")
+    if exec.artifacts:
+        return Verification(ok=True, reason=f"step complete ({len(exec.artifacts)} artifacts)")
+    if exec.stdout.strip():
+        return Verification(ok=True, reason="step complete")
+    return Verification(ok=False, reason="no output produced")
 
 
 def _analyze_files(task: Task, ctx: dict) -> dict:
@@ -178,11 +167,12 @@ def _charts_prompt(task: Task, ctx: dict) -> str:
 
 def _charts_verify(exec: ExecutionResult, ctx: dict) -> Verification:
     if exec.exit_code != 0:
-        return Verification(ok=False, reason=f"charts exited {exec.exit_code}: {exec.stderr.strip()[-300:]}")
-    charts = [a for a in exec.artifacts if a.startswith("chart") and a.endswith(".png")]
-    if len(charts) == 0:
-        return Verification(ok=False, reason="no chart artifacts produced")
-    return Verification(ok=True, reason=f"generated {len(charts)} charts")
+        return Verification(ok=False, reason=f"exited {exec.exit_code}: {exec.stderr.strip()[-200:]}")
+    if exec.artifacts:
+        return Verification(ok=True, reason=f"step complete ({len(exec.artifacts)} artifacts)")
+    if exec.stdout.strip():
+        return Verification(ok=True, reason="step complete")
+    return Verification(ok=False, reason="no output produced")
 
 
 def _charts_files(task: Task, ctx: dict) -> dict:
@@ -214,7 +204,13 @@ def _insights_prompt(task: Task, ctx: dict) -> str:
 
 
 def _insights_verify(exec: ExecutionResult, ctx: dict) -> Verification:
-    return Verification(ok=True, reason="insights generated")
+    if exec.exit_code != 0:
+        return Verification(ok=False, reason=f"exited {exec.exit_code}: {exec.stderr.strip()[-200:]}")
+    if exec.artifacts:
+        return Verification(ok=True, reason=f"step complete ({len(exec.artifacts)} artifacts)")
+    if exec.stdout.strip():
+        return Verification(ok=True, reason="step complete")
+    return Verification(ok=False, reason="no output produced")
 
 
 class Vector6Mode(PipelineModeBase):

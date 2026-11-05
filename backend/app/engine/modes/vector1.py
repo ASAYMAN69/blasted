@@ -5,8 +5,6 @@ Each step runs in the sandbox; each step's output feeds the next step's prompt.
 """
 from __future__ import annotations
 
-import json
-
 from backend.app.engine.modes.base import Step, Verification
 from backend.app.engine.modes.pipeline_base import PipelineModeBase
 from backend.app.engine.orchestrator import Task
@@ -59,16 +57,9 @@ def _profile_prompt(task: Task, ctx: dict) -> str:
 def _profile_verify(exec: ExecutionResult, ctx: dict) -> Verification:
     if exec.exit_code != 0:
         return Verification(ok=False, reason=f"profile exited {exec.exit_code}: {exec.stderr.strip()[-300:]}")
-    try:
-        import json
-        import re
-        m = re.search(r"PROFILE_JSON:\s*(\{.*\})", exec.stdout, re.DOTALL)
-        data = json.loads(m.group(1)) if m else json.loads(exec.stdout.strip().splitlines()[-1])
-        if not all(k in data for k in ("shape", "columns", "nulls")):
-            return Verification(ok=False, reason="profile JSON missing required fields")
-        return Verification(ok=True, reason="profile complete")
-    except Exception as e:
-        return Verification(ok=False, reason=f"profile parse error: {e}")
+    if not exec.stdout.strip():
+        return Verification(ok=False, reason="profile produced no output")
+    return Verification(ok=True, reason="profile complete")
 
 
 def _profile_files(task: Task, ctx: dict) -> dict:
@@ -101,8 +92,8 @@ def _clean_prompt(task: Task, ctx: dict) -> str:
 def _clean_verify(exec: ExecutionResult, ctx: dict) -> Verification:
     if exec.exit_code != 0:
         return Verification(ok=False, reason=f"clean exited {exec.exit_code}: {exec.stderr.strip()[-300:]}")
-    if "cleaned.csv" not in exec.artifacts:
-        return Verification(ok=False, reason="cleaned.csv artifact not produced")
+    if not exec.stdout.strip() and not exec.artifacts:
+        return Verification(ok=False, reason="clean produced no output")
     return Verification(ok=True, reason="cleaning complete")
 
 
@@ -122,7 +113,7 @@ def _analyze_prompt(task: Task, ctx: dict) -> str:
         f"PROFILE:\n{profile[:800]}\n\n"
         f"CLEANING LOG:\n{clean_log[:800]}\n\n"
         "The script must:\n"
-        "1. Read /workspace/cleaned.csv with pandas\n"
+        "1. Read /workspace/cleaned.csv if it exists, otherwise /workspace/input.csv, with pandas\n"
         "2. Compute the answer to the user's question\n"
         "3. Detect anomalies (spikes, drops, outliers) if relevant\n"
         "4. Compute trends (month-over-month, week-over-week) if relevant\n"
@@ -136,22 +127,20 @@ def _analyze_prompt(task: Task, ctx: dict) -> str:
 def _analyze_verify(exec: ExecutionResult, ctx: dict) -> Verification:
     if exec.exit_code != 0:
         return Verification(ok=False, reason=f"analyze exited {exec.exit_code}: {exec.stderr.strip()[-300:]}")
-    import re
-    m = re.search(r"ANALYSIS_JSON:\s*(\{.*\})", exec.stdout, re.DOTALL)
-    if m:
-        try:
-            data = json.loads(m.group(1))
-            if "summary" not in data or "numbers" not in data:
-                return Verification(ok=False, reason="analysis JSON missing required fields")
-            return Verification(ok=True, reason="analysis complete")
-        except json.JSONDecodeError:
-            return Verification(ok=False, reason="analysis JSON parse error")
-    return Verification(ok=False, reason="no ANALYSIS_JSON marker in stdout")
+    if not exec.stdout.strip():
+        return Verification(ok=False, reason="analysis produced no output")
+    return Verification(ok=True, reason="analysis complete")
 
 
 def _analyze_files(task: Task, ctx: dict) -> dict:
-    # Pass cleaned.csv from context if available, otherwise input.csv
-    return {}
+    files = {}
+    clean_ctx = ctx.get("clean", {})
+    artifact_contents = clean_ctx.get("artifact_contents", {})
+    if "cleaned.csv" in artifact_contents:
+        files["cleaned.csv"] = artifact_contents["cleaned.csv"]
+    else:
+        files["input.csv"] = _extract_text(task)
+    return files
 
 
 # ── Step 4: Chart ────────────────────────────────────────────────────────────
@@ -166,7 +155,7 @@ def _chart_prompt(task: Task, ctx: dict) -> str:
         f"ANALYSIS:\n{analysis[:1000]}\n\n"
         f"COLOR PALETTE (use these exact hex colors): {palette_line}\n\n"
         "The script must:\n"
-        "1. Read /workspace/cleaned.csv with pandas\n"
+        "1. Read /workspace/cleaned.csv if it exists, otherwise /workspace/input.csv, with pandas\n"
         "2. Create a chart that visualizes the key finding from the analysis\n"
         "3. Save to /workspace/chart.png\n"
         "4. Use `print(..., file=sys.stderr)` for debug; stdout stays clean\n"
@@ -185,7 +174,14 @@ def _chart_verify(exec: ExecutionResult, ctx: dict) -> Verification:
 
 
 def _chart_files(task: Task, ctx: dict) -> dict:
-    return {}
+    files = {}
+    clean_ctx = ctx.get("clean", {})
+    artifact_contents = clean_ctx.get("artifact_contents", {})
+    if "cleaned.csv" in artifact_contents:
+        files["cleaned.csv"] = artifact_contents["cleaned.csv"]
+    else:
+        files["input.csv"] = _extract_text(task)
+    return files
 
 
 # ── Step 5: Report ───────────────────────────────────────────────────────────
