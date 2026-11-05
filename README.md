@@ -13,13 +13,22 @@ Submit a task in plain English. The agent plans, writes, and runs real code insi
 isolated Docker sandbox on Vultr, then returns the actual output — not a description.
 Every sandbox is destroyed after the task. No network, no secrets, no escape.
 
-### Four modes
+### Four legacy modes
 | Mode | Input | Output |
 |---|---|---|
 | **CSV Analyst** | CSV + question | Real stats + chart + structured JSON |
 | **Code Reviewer** | Python file + goal | Self-heals broken code, re-runs until green |
 | **Chart Anything** | Data + chart request | Real PNG/HTML chart (5 palettes, 7 chart types) |
 | **File Fixer** | File + desired behavior | Unified diff + verified re-run |
+
+### Five multi-step business-value agents
+| Agent | Pipeline | Business value |
+|---|---|---|
+| **Messy Data → Decision** | profile → clean → analyze → chart → report | Turns hours of Excel work into 30 seconds |
+| **Invoice Reconciler** | extract → parse → reconcile → report → summarize | Automates invoice processing + PO matching |
+| **Research Synthesizer** | fetch → extract claims → cross-reference → report → summarize | Replaces hours of manual research synthesis |
+| **Incident Investigator** | profile → detect anomalies → correlate → hypothesize → verify fix → report | Automates DevOps incident investigation |
+| **Data Pipeline** | profile → clean → analyze → charts → insights | Full data science pipeline in one click |
 
 ## Vultr services used
 
