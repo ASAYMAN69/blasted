@@ -25,6 +25,7 @@ class Step:
     Each step is a self-contained unit: it has a name, a system prompt,
     a prompt builder (that takes the task + accumulated context), a verifier,
     and a file builder (that determines which files go into the sandbox).
+    Set text_only=True for steps that only generate text (no sandbox execution).
     """
     name: str
     system_prompt: str
@@ -33,6 +34,7 @@ class Step:
     files: Callable[[Task, dict[str, Any]], dict[str, str]] = field(default_factory=lambda: lambda t, c: {})
     timeout_s: int = 60
     max_retries: int = 3
+    text_only: bool = False
 
 
 class Mode(Protocol):

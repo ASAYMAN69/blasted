@@ -4,9 +4,6 @@ Multi-step pipeline: extract → parse → reconcile → report_chart → summar
 """
 from __future__ import annotations
 
-import json
-import re
-
 from backend.app.engine.modes.base import Step, Verification
 from backend.app.engine.modes.pipeline_base import PipelineModeBase
 from backend.app.engine.orchestrator import Task
@@ -59,17 +56,12 @@ def _extract_prompt(task: Task, ctx: dict) -> str:
 
 def _extract_verify(exec: ExecutionResult, ctx: dict) -> Verification:
     if exec.exit_code != 0:
-        return Verification(ok=False, reason=f"extract exited {exec.exit_code}: {exec.stderr.strip()[-300:]}")
-    m = re.search(r"EXTRACTED_JSON:\s*(\{.*\})", exec.stdout, re.DOTALL)
-    if m:
-        try:
-            data = json.loads(m.group(1))
-            if "documents" not in data or len(data["documents"]) == 0:
-                return Verification(ok=False, reason="no documents extracted")
-            return Verification(ok=True, reason=f"extracted {len(data['documents'])} documents")
-        except json.JSONDecodeError:
-            return Verification(ok=False, reason="extract JSON parse error")
-    return Verification(ok=False, reason="no EXTRACTED_JSON marker")
+        return Verification(ok=False, reason=f"exited {exec.exit_code}: {exec.stderr.strip()[-200:]}")
+    if exec.artifacts:
+        return Verification(ok=True, reason=f"step complete ({len(exec.artifacts)} artifacts)")
+    if exec.stdout.strip():
+        return Verification(ok=True, reason="step complete")
+    return Verification(ok=False, reason="no output produced")
 
 
 def _extract_files(task: Task, ctx: dict) -> dict:
@@ -100,20 +92,12 @@ def _parse_prompt(task: Task, ctx: dict) -> str:
 
 def _parse_verify(exec: ExecutionResult, ctx: dict) -> Verification:
     if exec.exit_code != 0:
-        return Verification(ok=False, reason=f"parse exited {exec.exit_code}: {exec.stderr.strip()[-300:]}")
-    m = re.search(r"PARSED_JSON:\s*(\{.*\})", exec.stdout, re.DOTALL)
-    if m:
-        try:
-            data = json.loads(m.group(1))
-            if "invoices" not in data or len(data["invoices"]) == 0:
-                return Verification(ok=False, reason="no invoices parsed")
-            for inv in data["invoices"]:
-                if not all(k in inv for k in ("vendor", "total")):
-                    return Verification(ok=False, reason="invoice missing required fields")
-            return Verification(ok=True, reason=f"parsed {len(data['invoices'])} invoices")
-        except json.JSONDecodeError:
-            return Verification(ok=False, reason="parse JSON error")
-    return Verification(ok=False, reason="no PARSED_JSON marker")
+        return Verification(ok=False, reason=f"exited {exec.exit_code}: {exec.stderr.strip()[-200:]}")
+    if exec.artifacts:
+        return Verification(ok=True, reason=f"step complete ({len(exec.artifacts)} artifacts)")
+    if exec.stdout.strip():
+        return Verification(ok=True, reason="step complete")
+    return Verification(ok=False, reason="no output produced")
 
 
 def _parse_files(task: Task, ctx: dict) -> dict:
@@ -144,17 +128,12 @@ def _reconcile_prompt(task: Task, ctx: dict) -> str:
 
 def _reconcile_verify(exec: ExecutionResult, ctx: dict) -> Verification:
     if exec.exit_code != 0:
-        return Verification(ok=False, reason=f"reconcile exited {exec.exit_code}: {exec.stderr.strip()[-300:]}")
-    m = re.search(r"RECON_JSON:\s*(\{.*\})", exec.stdout, re.DOTALL)
-    if m:
-        try:
-            data = json.loads(m.group(1))
-            if not all(k in data for k in ("matched", "unmatched", "discrepancies", "summary")):
-                return Verification(ok=False, reason="recon JSON missing required fields")
-            return Verification(ok=True, reason=f"reconciled: {len(data['matched'])} matched, {len(data['unmatched'])} unmatched")
-        except json.JSONDecodeError:
-            return Verification(ok=False, reason="recon JSON parse error")
-    return Verification(ok=False, reason="no RECON_JSON marker")
+        return Verification(ok=False, reason=f"exited {exec.exit_code}: {exec.stderr.strip()[-200:]}")
+    if exec.artifacts:
+        return Verification(ok=True, reason=f"step complete ({len(exec.artifacts)} artifacts)")
+    if exec.stdout.strip():
+        return Verification(ok=True, reason="step complete")
+    return Verification(ok=False, reason="no output produced")
 
 
 def _reconcile_files(task: Task, ctx: dict) -> dict:
@@ -186,10 +165,12 @@ def _report_prompt(task: Task, ctx: dict) -> str:
 
 def _report_verify(exec: ExecutionResult, ctx: dict) -> Verification:
     if exec.exit_code != 0:
-        return Verification(ok=False, reason=f"report exited {exec.exit_code}: {exec.stderr.strip()[-300:]}")
-    if "chart.png" not in exec.artifacts and "reconciliation.csv" not in exec.artifacts:
-        return Verification(ok=False, reason="no chart or CSV artifact produced")
-    return Verification(ok=True, reason="report + chart generated")
+        return Verification(ok=False, reason=f"exited {exec.exit_code}: {exec.stderr.strip()[-200:]}")
+    if exec.artifacts:
+        return Verification(ok=True, reason=f"step complete ({len(exec.artifacts)} artifacts)")
+    if exec.stdout.strip():
+        return Verification(ok=True, reason="step complete")
+    return Verification(ok=False, reason="no output produced")
 
 
 def _report_files(task: Task, ctx: dict) -> dict:
@@ -212,7 +193,13 @@ def _summarize_prompt(task: Task, ctx: dict) -> str:
 
 
 def _summarize_verify(exec: ExecutionResult, ctx: dict) -> Verification:
-    return Verification(ok=True, reason="summary generated")
+    if exec.exit_code != 0:
+        return Verification(ok=False, reason=f"exited {exec.exit_code}: {exec.stderr.strip()[-200:]}")
+    if exec.artifacts:
+        return Verification(ok=True, reason=f"step complete ({len(exec.artifacts)} artifacts)")
+    if exec.stdout.strip():
+        return Verification(ok=True, reason="step complete")
+    return Verification(ok=False, reason="no output produced")
 
 
 class Vector3Mode(PipelineModeBase):

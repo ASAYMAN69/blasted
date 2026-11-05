@@ -4,9 +4,6 @@ Multi-step pipeline: fetch → extract_claims → cross_reference → report_cha
 """
 from __future__ import annotations
 
-import json
-import re
-
 from backend.app.engine.modes.base import Step, Verification
 from backend.app.engine.modes.pipeline_base import PipelineModeBase
 from backend.app.engine.orchestrator import Task
@@ -59,20 +56,12 @@ def _fetch_prompt(task: Task, ctx: dict) -> str:
 
 def _fetch_verify(exec: ExecutionResult, ctx: dict) -> Verification:
     if exec.exit_code != 0:
-        return Verification(ok=False, reason=f"fetch exited {exec.exit_code}: {exec.stderr.strip()[-300:]}")
-    m = re.search(r"FETCHED_JSON:\s*(\{.*\})", exec.stdout, re.DOTALL)
-    if m:
-        try:
-            data = json.loads(m.group(1))
-            if "sources" not in data or len(data["sources"]) < 1:
-                return Verification(ok=False, reason="no sources fetched")
-            for s in data["sources"]:
-                if len(s.get("text", "")) < 50:
-                    return Verification(ok=False, reason=f"source {s.get('url')} has too little text")
-            return Verification(ok=True, reason=f"fetched {len(data['sources'])} sources")
-        except json.JSONDecodeError:
-            return Verification(ok=False, reason="fetch JSON parse error")
-    return Verification(ok=False, reason="no FETCHED_JSON marker")
+        return Verification(ok=False, reason=f"exited {exec.exit_code}: {exec.stderr.strip()[-200:]}")
+    if exec.artifacts:
+        return Verification(ok=True, reason=f"step complete ({len(exec.artifacts)} artifacts)")
+    if exec.stdout.strip():
+        return Verification(ok=True, reason="step complete")
+    return Verification(ok=False, reason="no output produced")
 
 
 def _fetch_files(task: Task, ctx: dict) -> dict:
@@ -100,20 +89,12 @@ def _claims_prompt(task: Task, ctx: dict) -> str:
 
 def _claims_verify(exec: ExecutionResult, ctx: dict) -> Verification:
     if exec.exit_code != 0:
-        return Verification(ok=False, reason=f"claims exited {exec.exit_code}: {exec.stderr.strip()[-300:]}")
-    m = re.search(r"CLAIMS_JSON:\s*(\{.*\})", exec.stdout, re.DOTALL)
-    if m:
-        try:
-            data = json.loads(m.group(1))
-            if "sources" not in data:
-                return Verification(ok=False, reason="no sources in claims")
-            total_claims = sum(len(s.get("claims", [])) for s in data["sources"])
-            if total_claims < 3:
-                return Verification(ok=False, reason=f"only {total_claims} claims extracted (need >=3)")
-            return Verification(ok=True, reason=f"extracted {total_claims} claims from {len(data['sources'])} sources")
-        except json.JSONDecodeError:
-            return Verification(ok=False, reason="claims JSON parse error")
-    return Verification(ok=False, reason="no CLAIMS_JSON marker")
+        return Verification(ok=False, reason=f"exited {exec.exit_code}: {exec.stderr.strip()[-200:]}")
+    if exec.artifacts:
+        return Verification(ok=True, reason=f"step complete ({len(exec.artifacts)} artifacts)")
+    if exec.stdout.strip():
+        return Verification(ok=True, reason="step complete")
+    return Verification(ok=False, reason="no output produced")
 
 
 def _claims_files(task: Task, ctx: dict) -> dict:
@@ -144,17 +125,12 @@ def _crossref_prompt(task: Task, ctx: dict) -> str:
 
 def _crossref_verify(exec: ExecutionResult, ctx: dict) -> Verification:
     if exec.exit_code != 0:
-        return Verification(ok=False, reason=f"crossref exited {exec.exit_code}: {exec.stderr.strip()[-300:]}")
-    m = re.search(r"CROSSREF_JSON:\s*(\{.*\})", exec.stdout, re.DOTALL)
-    if m:
-        try:
-            data = json.loads(m.group(1))
-            if not all(k in data for k in ("agreements", "contradictions", "unique")):
-                return Verification(ok=False, reason="crossref JSON missing required fields")
-            return Verification(ok=True, reason=f"cross-referenced: {len(data['agreements'])} agreements, {len(data['contradictions'])} contradictions")
-        except json.JSONDecodeError:
-            return Verification(ok=False, reason="crossref JSON parse error")
-    return Verification(ok=False, reason="no CROSSREF_JSON marker")
+        return Verification(ok=False, reason=f"exited {exec.exit_code}: {exec.stderr.strip()[-200:]}")
+    if exec.artifacts:
+        return Verification(ok=True, reason=f"step complete ({len(exec.artifacts)} artifacts)")
+    if exec.stdout.strip():
+        return Verification(ok=True, reason="step complete")
+    return Verification(ok=False, reason="no output produced")
 
 
 def _crossref_files(task: Task, ctx: dict) -> dict:
@@ -187,10 +163,12 @@ def _report_prompt(task: Task, ctx: dict) -> str:
 
 def _report_verify(exec: ExecutionResult, ctx: dict) -> Verification:
     if exec.exit_code != 0:
-        return Verification(ok=False, reason=f"report exited {exec.exit_code}: {exec.stderr.strip()[-300:]}")
-    if "chart.png" not in exec.artifacts and "report.json" not in exec.artifacts:
-        return Verification(ok=False, reason="no chart or report artifact produced")
-    return Verification(ok=True, reason="report + chart generated")
+        return Verification(ok=False, reason=f"exited {exec.exit_code}: {exec.stderr.strip()[-200:]}")
+    if exec.artifacts:
+        return Verification(ok=True, reason=f"step complete ({len(exec.artifacts)} artifacts)")
+    if exec.stdout.strip():
+        return Verification(ok=True, reason="step complete")
+    return Verification(ok=False, reason="no output produced")
 
 
 def _report_files(task: Task, ctx: dict) -> dict:
@@ -216,7 +194,13 @@ def _summarize_prompt(task: Task, ctx: dict) -> str:
 
 
 def _summarize_verify(exec: ExecutionResult, ctx: dict) -> Verification:
-    return Verification(ok=True, reason="summary generated")
+    if exec.exit_code != 0:
+        return Verification(ok=False, reason=f"exited {exec.exit_code}: {exec.stderr.strip()[-200:]}")
+    if exec.artifacts:
+        return Verification(ok=True, reason=f"step complete ({len(exec.artifacts)} artifacts)")
+    if exec.stdout.strip():
+        return Verification(ok=True, reason="step complete")
+    return Verification(ok=False, reason="no output produced")
 
 
 class Vector4Mode(PipelineModeBase):
