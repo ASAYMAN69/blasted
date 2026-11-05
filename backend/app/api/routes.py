@@ -36,7 +36,11 @@ def _get_orchestrator() -> Orchestrator:
                 sandbox = SandboxManager()
         except Exception:
             sandbox = None
-        _ORCHESTRATOR = Orchestrator(settings, llm, sandbox, None)
+        # Anchor the DB to the repo root so persistence is independent of
+        # the process's current working directory.
+        _repo_root = Path(__file__).resolve().parents[3]
+        _db_path = _repo_root / "data" / "sandboxed.db"
+        _ORCHESTRATOR = Orchestrator(settings, llm, sandbox, str(_db_path))
     return _ORCHESTRATOR
 
 

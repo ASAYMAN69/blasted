@@ -21,28 +21,14 @@ except ImportError:  # running from repo root as backend.app.sandbox
     from backend.app.config import get_settings
 
 
-def _safe_filename(name: str) -> str:
-    """Reduce a user-supplied filename to a safe basename.
-
-    Rejects path separators, traversal segments, and empty/hidden names so
-    that sandbox file writes can never escape the workspace directory.
-    Returns the basename only; raises ValueError on anything unsafe.
-    """
-    if not isinstance(name, str) or not name:
-        raise ValueError("empty filename")
-    if "/" in name or "\\" in name:
-        raise ValueError(f"unsafe filename (path separator): {name!r}")
-    base = name
-    if base in ("", ".", "..") or base.startswith("."):
-        raise ValueError(f"unsafe filename: {name!r}")
-    return base
-
-
 class ExecutionResult(BaseModel):
     stdout: str
     stderr: str
     exit_code: int
     artifacts: list[str]  # filenames copied out of /workspace
+
+
+from backend.app.sandbox.paths import _safe_filename
 
 
 class SandboxError(RuntimeError):

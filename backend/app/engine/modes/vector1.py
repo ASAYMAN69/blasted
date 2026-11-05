@@ -207,7 +207,7 @@ def _report_prompt(task: Task, ctx: dict) -> str:
 
 def _report_verify(exec: ExecutionResult, ctx: dict) -> Verification:
     # No sandbox run for this step — just check the text is non-empty
-    return Verification(ok=True, reason="report generated")
+    return Verification(ok=len((exec.stdout or "").strip()) > 0, reason="report generated" if (exec.stdout or "").strip() else "empty report")
 
 
 class Vector1Mode(PipelineModeBase):

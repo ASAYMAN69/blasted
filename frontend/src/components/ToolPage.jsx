@@ -104,13 +104,17 @@ export default function ToolPage() {
 
   useEffect(() => {
     let alive = true
-    listModes()
-      .then((data) => {
-        if (!alive) return
-        setModes(Array.isArray(data) ? data : [])
-      })
-      .catch(() => {})
-    return () => { alive = false }
+    const fetchModes = () => {
+      listModes()
+        .then((data) => {
+          if (!alive) return
+          setModes(Array.isArray(data) ? data : [])
+        })
+        .catch(() => {})
+    }
+    fetchModes()
+    window.addEventListener('focus', fetchModes)
+    return () => { alive = false; window.removeEventListener('focus', fetchModes) }
   }, [])
 
   // Auto-set palette/chart_type defaults
