@@ -54,7 +54,16 @@ def version() -> dict:
     return {"app": "sandboxed-agent-studio", "version": "0.1.0", "sha": sha}
 
 
-# Serve built frontend static files if present.
+# Serve built frontend static files if present (SPA fallback).
 _frontend_dist = Path("frontend/dist")
 if _frontend_dist.is_dir():
-    app.mount("/", StaticFiles(directory=str(_frontend_dist), html=True), name="app")
+    from fastapi.responses import FileResponse
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def spa_fallback(full_path: str):
+        asset = _frontend_dist / full_path
+        if asset.is_file():
+            return FileResponse(asset)
+        return FileResponse(_frontend_dist / "index.html")
+
+    app.mount("/assets", StaticFiles(directory=str(_frontend_dist / "assets")), name="assets")
