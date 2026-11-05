@@ -5,12 +5,12 @@ origin can call the API), and the built SPA (so the same process serves both
 in production). We mount the SPA only if `frontend/dist` exists so local dev
 stays fast (Vite serves the frontend separately).
 """
+import subprocess as _subprocess
 from pathlib import Path
 
 from backend.app.api.routes import router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(title="Sandboxed Agent Studio")
 
@@ -36,22 +36,22 @@ def health() -> dict:
     return {"status": "ok"}
 
 
+_cached_sha = "dev"
+try:
+    _cached_sha = _subprocess.run(
+        ["git", "rev-parse", "--short", "HEAD"],
+        capture_output=True,
+        text=True,
+        timeout=5,
+    ).stdout.strip() or "dev"
+except Exception:
+    pass
+
+
 @app.get("/api/version")
 def version() -> dict:
     """Deployed revision + app version (useful for verifying CD)."""
-    import subprocess
-
-    sha = "dev"
-    try:
-        sha = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        ).stdout.strip() or "dev"
-    except Exception:
-        pass
-    return {"app": "sandboxed-agent-studio", "version": "0.1.0", "sha": sha}
+    return {"app": "sandboxed-agent-studio", "version": "0.1.0", "sha": _cached_sha}
 
 
 # Serve built frontend static files if present (SPA fallback).
@@ -66,4 +66,3 @@ if _frontend_dist.is_dir():
             return FileResponse(asset)
         return FileResponse(_frontend_dist / "index.html")
 
-    app.mount("/assets", StaticFiles(directory=str(_frontend_dist / "assets")), name="assets")

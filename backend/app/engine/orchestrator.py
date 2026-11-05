@@ -19,30 +19,13 @@ from pydantic import BaseModel
 # Re-exported for the frozen modes/base.py contract (which imports
 # ExecutionResult from this module). Do not remove.
 ExecutionResult = ExecutionResult  # noqa: PLW0127
+from backend.app.sandbox.paths import _safe_filename
 
 # Re-exported for the frozen modes/base.py contract (which imports
 # ExecutionResult from this module). Do not remove.
 
 # Re-exported for the frozen modes/base.py contract (which imports
 # ExecutionResult from this module). Do not remove.
-
-
-def _safe_filename(name: str) -> str:
-    """Reduce a user-supplied filename to a safe basename.
-
-    Rejects path separators, traversal segments, and empty/hidden names so
-    that sandbox file writes can never escape the workspace directory.
-    Returns the basename only; raises ValueError on anything unsafe.
-    """
-    if not isinstance(name, str) or not name:
-        raise ValueError("empty filename")
-    # Reject anything that looks like a path (no reduction to basename).
-    if "/" in name or "\\" in name:
-        raise ValueError(f"unsafe filename (path separator): {name!r}")
-    base = name
-    if base in ("", ".", "..") or base.startswith("."):
-        raise ValueError(f"unsafe filename: {name!r}")
-    return base
 
 
 class Task(BaseModel):
@@ -95,7 +78,7 @@ def extract_parsed(stdout: str) -> dict | None:
     if not text:
         return None
 
-    for marker in ("RESULT_JSON:", "CODER_RESULT:", "FIX_RESULT:", "RESULT:"):
+    for marker in ("RESULT_JSON:", "CODER_RESULT:", "FIX_RESULT:"):
         idx = text.rfind(marker)
         if idx != -1:
             payload = text[idx + len(marker):].strip()
@@ -179,8 +162,9 @@ class Orchestrator:
                 store_db.create_task(self._db_path, task.id, task.mode, task.inputs)
             elif self._store is not None and hasattr(self._store, "create_task"):
                 self._store.create_task(task.id, task.mode, task.inputs)
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001
+            import logging
+            logging.warning("_ensure_task_persisted failed: %s", exc)
 
     def _update_task_persisted(self, task_id: str, status: str, summary: str) -> None:
         try:
@@ -190,27 +174,25 @@ class Orchestrator:
                 store_db.update_task_status(self._db_path, task_id, status, summary)
             elif self._store is not None and hasattr(self._store, "update_task_status"):
                 self._store.update_task_status(task_id, status, summary)
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001
+            import logging
+            logging.warning("_update_task_persisted failed: %s", exc)
 
     def _sanitize_code(self, raw: str) -> str:
         text = (raw or "").strip()
-        if "```" in text:
-            lines = text.splitlines()
-            # find first fenced block
-            start = None
-            for i, line in enumerate(lines):
-                if line.strip().startswith("```"):
-                    start = i + 1
-                    break
-            if start is not None:
-                end = len(lines)
-                for j in range(start, len(lines)):
-                    if lines[j].strip().startswith("```"):
-                        end = j
-                        break
-                text = "\n".join(lines[start:end]).strip()
-        return text
+        lines = text.splitlines()
+        # Only strip a wrapping markdown fence: the first non-empty line must
+        # start with ```. Code that merely contains backticks is left alone.
+        first = next((ln for ln in lines if ln.strip()), "")
+        if not first.startswith("```"):
+            return text
+        start = 1
+        end = len(lines)
+        for j in range(1, len(lines)):
+            if lines[j].strip().startswith("```"):
+                end = j
+                break
+        return "\n".join(lines[start:end]).strip()
 
     def _build_files(self, task: Task) -> dict[str, str]:
         files: dict[str, str] = {}
@@ -317,7 +299,7 @@ class Orchestrator:
                 mode = None
 
         # Detect multi-step pipeline mode
-        is_pipeline = mode is not None and hasattr(mode, "pipeline_steps")
+        is_pipeline = mode is not None and bool(getattr(mode, "pipeline_steps", None))
 
         if is_pipeline:
             async for result in self._run_pipeline(task, mode):
@@ -461,8 +443,21 @@ class Orchestrator:
 
         steps = getattr(mode, "pipeline_steps", [])
         total_steps = len(steps)
+        if total_steps == 0:
+            self._update_task_persisted(task.id, "failed", "pipeline has no steps")
+            result = RunResult(
+                task_id=task.id,
+                status="failed",
+                attempts=0,
+                summary="Pipeline has no steps — misconfigured mode.",
+                artifacts=[],
+            )
+            self._results[task.id] = result
+            yield result
+            return
         context: dict[str, Any] = {}
         artifacts: list[str] = []
+        total_attempts = 0
 
         yield RunResult(
             task_id=task.id,
@@ -481,6 +476,7 @@ class Orchestrator:
             step_last_error: str | None = None
 
             for step_attempts in range(1, max_retries + 1):
+                total_attempts += 1
                 try:
                     build_prompt = getattr(step, "build_prompt", None)
                     if build_prompt is not None:
@@ -496,6 +492,24 @@ class Orchestrator:
 
                     if is_text_only:
                         result_text = self._llm.generate(prompt, system=system_prompt, max_tokens=max_tokens)
+                        from backend.app.sandbox.manager import ExecutionResult as _ER
+
+                        synthetic_exec = _ER(stdout=result_text or "", stderr="", exit_code=0, artifacts=[])
+                        verify_fn = getattr(step, "verify", None)
+                        if verify_fn is not None:
+                            verification = verify_fn(synthetic_exec, context)
+                        else:
+                            verification = type("V", (), {"ok": bool((result_text or "").strip()), "reason": "text generated"})()
+                        if not getattr(verification, "ok", False):
+                            step_last_error = getattr(verification, "reason", "empty result") or "empty result"
+                            yield RunResult(
+                                task_id=task.id,
+                                status="running",
+                                attempts=total_attempts,
+                                summary=f"Step {step_idx + 1}/{total_steps} ({step_name}): attempt {step_attempts} failed — {(step_last_error or '')[:120]}",
+                                artifacts=list(artifacts),
+                            )
+                            continue
                         context[step_name] = {
                             "status": "passed",
                             "stdout": result_text,
@@ -503,14 +517,14 @@ class Orchestrator:
                             "exit_code": 0,
                             "artifacts": [],
                             "parsed": extract_parsed(result_text),
-                            "reason": "text generated",
+                            "reason": getattr(verification, "reason", "text generated"),
                         }
-                        context[f"{step_name}_summary"] = result_text[:120]
+                        context[f"{step_name}_summary"] = (result_text or "")[:120]
                         step_succeeded = True
                         yield RunResult(
                             task_id=task.id,
                             status="running",
-                            attempts=step_idx + 1,
+                            attempts=total_attempts,
                             summary=f"Step {step_idx + 1}/{total_steps} ({step_name}): done",
                             artifacts=list(artifacts),
                             parsed=context.get(step_name, {}).get("parsed"),
@@ -579,7 +593,7 @@ class Orchestrator:
                         yield RunResult(
                             task_id=task.id,
                             status="running",
-                            attempts=step_idx + 1,
+                            attempts=total_attempts,
                             summary=f"Step {step_idx + 1}/{total_steps} ({step_name}): {summary}",
                             artifacts=list(artifacts),
                             parsed=context.get(step_name, {}).get("parsed"),
@@ -598,7 +612,7 @@ class Orchestrator:
                 yield RunResult(
                     task_id=task.id,
                     status="running",
-                    attempts=step_idx + 1,
+                    attempts=total_attempts,
                     summary=f"Step {step_idx + 1}/{total_steps} ({step_name}): attempt {step_attempts} failed — {(step_last_error or '')[:120]}",
                     artifacts=list(artifacts),
                 )
@@ -608,7 +622,7 @@ class Orchestrator:
                 result = RunResult(
                     task_id=task.id,
                     status="failed",
-                    attempts=step_idx + 1,
+                    attempts=total_attempts,
                     summary=f"Step {step_idx + 1}/{total_steps} ({step_name}) failed: {(step_last_error or '')[:200]}",
                     artifacts=list(artifacts),
                 )
@@ -621,7 +635,7 @@ class Orchestrator:
         result = RunResult(
             task_id=task.id,
             status="passed",
-            attempts=total_steps,
+            attempts=total_attempts,
             summary=f"All {total_steps} steps completed successfully.",
             artifacts=list(artifacts),
             parsed=context.get(final_step, {}).get("parsed"),
