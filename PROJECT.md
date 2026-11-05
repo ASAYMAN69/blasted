@@ -372,3 +372,18 @@ CONTEXT/
 ---
 
 **Bottom line for the auditor:** This is a working, deployed, tested AI agent platform with real sandbox execution and provable containment. The code is clean and modular. The gap is the pitch (video/slides/README), not the product. The most likely flaws to find are in the areas listed in §8 (in-memory state, no auth, no rate limiting, no frontend tests, Vultr stub unused).
+## 12. Multi-step business-value agents (vectors 1, 3, 4, 5, 6)
+
+Each vector is a multi-step pipeline where each step's output feeds the next:
+
+| Vector | Name | Steps | Business value |
+|---|---|---|---|
+| **vector1** | Messy Data → Decision | profile → clean → analyze → chart → report | Turns hours of Excel work into 30 seconds |
+| **vector3** | Invoice Reconciler | extract → parse → reconcile → report → summarize | Automates invoice processing + PO matching |
+| **vector4** | Research Synthesizer | fetch → extract claims → cross-reference → report → summarize | Replaces hours of manual research synthesis |
+| **vector5** | Incident Investigator | profile → detect anomalies → correlate → hypothesize → verify fix → report | Automates DevOps incident investigation |
+| **vector6** | Data Pipeline | profile → clean → analyze → charts → insights | Full data science pipeline in one click |
+
+Each step runs in a separate sandbox, with its own retry budget. Text-only steps skip the sandbox and call the LLM directly. Artifact contents are read back from disk and passed to downstream steps.
+
+All 5 vectors complete successfully (verified live). Each takes 10-60s depending on complexity.
