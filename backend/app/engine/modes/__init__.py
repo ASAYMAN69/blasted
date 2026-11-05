@@ -19,11 +19,11 @@ MODE_REGISTRY: dict[str, type[Mode]] = {
     "coder": CoderMode,
     "chart": ChartMode,
     "fix": FixMode,
-    "vector1": Vector1Mode,
-    "vector3": Vector3Mode,
-    "vector4": Vector4Mode,
-    "vector5": Vector5Mode,
-    "vector6": Vector6Mode,
+    "data-analyst": Vector1Mode,
+    "invoice-reconciler": Vector3Mode,
+    "research-synthesizer": Vector4Mode,
+    "incident-investigator": Vector5Mode,
+    "data-pipeline": Vector6Mode,
 }
 
 __all__ = ["Mode", "Verification", "MODE_REGISTRY"]

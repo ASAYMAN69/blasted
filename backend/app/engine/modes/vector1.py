@@ -211,7 +211,7 @@ def _report_verify(exec: ExecutionResult, ctx: dict) -> Verification:
 
 
 class Vector1Mode(PipelineModeBase):
-    name = "vector1"
+    name = "data-analyst"
     input_schema = {
         "type": "object",
         "properties": {

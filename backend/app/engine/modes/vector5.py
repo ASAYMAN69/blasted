@@ -238,7 +238,7 @@ def _report_verify(exec: ExecutionResult, ctx: dict) -> Verification:
 
 
 class Vector5Mode(PipelineModeBase):
-    name = "vector5"
+    name = "incident-investigator"
     input_schema = {
         "type": "object",
         "properties": {

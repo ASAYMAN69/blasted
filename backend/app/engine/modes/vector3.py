@@ -190,7 +190,7 @@ def _summarize_verify(exec: ExecutionResult, ctx: dict) -> Verification:
 
 
 class Vector3Mode(PipelineModeBase):
-    name = "vector3"
+    name = "invoice-reconciler"
     input_schema = {
         "type": "object",
         "properties": {

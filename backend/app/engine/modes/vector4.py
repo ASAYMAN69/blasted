@@ -181,7 +181,7 @@ def _summarize_verify(exec: ExecutionResult, ctx: dict) -> Verification:
 
 
 class Vector4Mode(PipelineModeBase):
-    name = "vector4"
+    name = "research-synthesizer"
     input_schema = {
         "type": "object",
         "properties": {
