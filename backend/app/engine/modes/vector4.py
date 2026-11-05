@@ -40,16 +40,15 @@ def _preview(text: str, max_chars: int = 3000) -> str:
 def _fetch_prompt(task: Task, ctx: dict) -> str:
     sources = _extract_text(task)
     return (
-        "You are a web researcher. Write a Python script that fetches the provided "
-        "URLs and extracts their main text content.\n\n"
-        f"SOURCES:\n{sources[:2000]}\n\n"
+        "You are a text processor. Write a Python script that reads the provided "
+        "source texts and splits them into individual documents.\n\n"
+        f"SOURCES:\n{sources[:3000]}\n\n"
         "The script must:\n"
-        "1. Parse the sources (one URL per line, or text blocks separated by ---SOURCE---)\n"
-        "2. For each URL, use requests + BeautifulSoup to fetch and extract main text\n"
-        "3. Strip HTML tags, navigation, ads, and boilerplate\n"
-        "4. Print: FETCHED_JSON: {\"sources\": [{\"url\": \"...\", \"text\": \"...\", \"chars\": N}]}\n"
-        "5. Print debug to stderr only\n"
-        "6. No file writes outside /workspace\n\n"
+        "1. Split the input by ---SOURCE--- into individual documents\n"
+        "2. For each document, extract the main text content (strip any HTML if present)\n"
+        "3. Print: FETCHED_JSON: {\"sources\": [{\"index\": 0, \"text\": \"...\", \"chars\": N}]}\n"
+        "4. Print debug to stderr only\n"
+        "5. No network, no file writes outside /workspace\n\n"
         "Output ONLY raw Python code."
     )
 
@@ -208,7 +207,7 @@ class Vector4Mode(PipelineModeBase):
     input_schema = {
         "type": "object",
         "properties": {
-            "sources": {"type": "string", "description": "URLs (one per line) or text blocks separated by ---SOURCE---"},
+            "sources": {"type": "string", "description": "Source texts separated by ---SOURCE--- (paste content of 3-5 articles/documents)"},
             "topic": {"type": "string", "description": "What to research"},
             "palette": {"type": "string", "enum": list(PALETTES.keys()), "default": "aurora"},
         },

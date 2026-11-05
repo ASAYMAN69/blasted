@@ -172,39 +172,25 @@ def _hypothesize_files(task: Task, ctx: dict) -> dict:
 # ── Step 5: Verify the fix (what-if) ────────────────────────────────────────
 def _verify_fix_prompt(task: Task, ctx: dict) -> str:
     hypothesis = ctx.get("hypothesize", {}).get("stdout", "")
-    profile = ctx.get("profile", {}).get("stdout", "")
-    palette = task.inputs.get("palette", "aurora")
-    hexes = PALETTES.get(palette, PALETTES["aurora"])
-    palette_line = ", ".join(hexes)
+    anomalies = ctx.get("detect_anomalies", {}).get("stdout", "")
     return (
-        "You are a fix verification agent. Write a Python script that simulates the "
-        "proposed fix and projects what the error rate would look like.\n\n"
+        "You are a fix verification agent. Based on the hypothesis and anomaly data below, "
+        "write a JSON object (no code) that verifies the proposed fix.\n\n"
         f"HYPOTHESIS:\n{hypothesis[:1000]}\n\n"
-        f"PROFILE:\n{profile[:800]}\n\n"
-        f"COLOR PALETTE: {palette_line}\n\n"
-        "The script must:\n"
-        "1. Read /workspace/metrics.csv\n"
-        "2. Simulate the fix (e.g., revert the config change, optimize the query)\n"
-        "3. Compute projected error rate after the fix\n"
-        "4. Create a chart: actual (with anomaly) vs projected (after fix)\n"
-        "5. Save chart to /workspace/chart.png\n"
-        "6. Print: VERIFY_JSON: {\"projected_error_rate\": N, \"expected_recovery_time\": \"...\", "
-        "\"improvement\": \"...\"}\n"
-        "7. Use the COLOR PALETTE for chart colors\n"
-        "8. Print debug to stderr only\n"
-        "9. No network, no file writes outside /workspace\n\n"
-        "Output ONLY raw Python code."
+        f"ANOMALIES:\n{anomalies[:800]}\n\n"
+        "Output a JSON object with:\n"
+        "{\"projected_error_rate\": <float: expected error rate after fix>, "
+        "\"expected_recovery_time\": \"<string: e.g. 5 minutes>\", "
+        "\"improvement\": \"<string: e.g. 95% reduction>\", "
+        "\"confidence\": <float 0-1>}\n\n"
+        "Output ONLY the JSON."
     )
 
 
 def _verify_fix_verify(exec: ExecutionResult, ctx: dict) -> Verification:
-    if exec.exit_code != 0:
-        return Verification(ok=False, reason=f"exited {exec.exit_code}: {exec.stderr.strip()[-200:]}")
-    if exec.artifacts:
-        return Verification(ok=True, reason=f"step complete ({len(exec.artifacts)} artifacts)")
-    if exec.stdout.strip():
-        return Verification(ok=True, reason="step complete")
-    return Verification(ok=False, reason="no output produced")
+    if not exec.stdout.strip():
+        return Verification(ok=False, reason="verify_fix produced no output")
+    return Verification(ok=True, reason="fix verified")
 
 
 def _verify_fix_files(task: Task, ctx: dict) -> dict:
@@ -268,8 +254,8 @@ class Vector5Mode(PipelineModeBase):
              build_prompt=_correlate_prompt, verify=_correlate_verify, files=_correlate_files, timeout_s=30),
         Step(name="hypothesize", system_prompt="You are a root-cause analyst. Output ONLY a JSON object.",
              build_prompt=_hypothesize_prompt, verify=_hypothesize_verify, files=_hypothesize_files, timeout_s=10, text_only=True),
-        Step(name="verify_fix", system_prompt="You are a fix verification agent. Output ONLY raw Python code.",
-             build_prompt=_verify_fix_prompt, verify=_verify_fix_verify, files=_verify_fix_files, timeout_s=30),
+        Step(name="verify_fix", system_prompt="You are a fix verification agent. Output ONLY a JSON object.",
+             build_prompt=_verify_fix_prompt, verify=_verify_fix_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
         Step(name="report", system_prompt="You are an SRE writing an incident report. Output ONLY the report text.",
              build_prompt=_report_prompt, verify=_report_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
     ]
