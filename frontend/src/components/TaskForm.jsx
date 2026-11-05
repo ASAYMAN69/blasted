@@ -13,6 +13,8 @@ import { EXAMPLES } from '../examples.js'
 import QuickActions from './QuickActions.jsx'
 import { EASE, ErrorState, Panel, Spinner } from './ui.jsx'
 
+const FILE_KEYS = new Set(['file', 'data', 'documents', 'sources', 'metrics', 'events', 'test', 'code'])
+
 const MODES = [
   {
     id: 'data-analyst',
