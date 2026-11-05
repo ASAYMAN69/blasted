@@ -15,7 +15,7 @@ class PipelineModeBase:
 
     name: str = ""
     input_schema: dict = {}
-    pipeline_steps: list[Step] = []
+    pipeline_steps: tuple[Step, ...] = ()
 
     def build_overall_plan_prompt(self, task: Task) -> str:
         step_names = [s.name for s in self.pipeline_steps]
