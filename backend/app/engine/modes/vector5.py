@@ -103,7 +103,7 @@ def _anomaly_verify(exec: ExecutionResult, ctx: dict) -> Verification:
 
 
 def _anomaly_files(task: Task, ctx: dict) -> dict:
-    return {}
+    return {"metrics.csv": _extract_text(task, "metrics")}
 
 
 # ── Step 3: Correlate with events ────────────────────────────────────────────
@@ -138,7 +138,11 @@ def _correlate_verify(exec: ExecutionResult, ctx: dict) -> Verification:
 
 
 def _correlate_files(task: Task, ctx: dict) -> dict:
-    return {}
+    files = {"metrics.csv": _extract_text(task, "metrics")}
+    ev = _extract_text(task, "events")
+    if ev:
+        files["events.csv"] = ev
+    return files
 
 
 # ── Step 4: Hypothesize root cause ───────────────────────────────────────────
@@ -208,7 +212,7 @@ def _verify_fix_verify(exec: ExecutionResult, ctx: dict) -> Verification:
 
 
 def _verify_fix_files(task: Task, ctx: dict) -> dict:
-    return {}
+    return {"metrics.csv": _extract_text(task, "metrics")}
 
 
 # ── Step 6: Incident report ──────────────────────────────────────────────────
