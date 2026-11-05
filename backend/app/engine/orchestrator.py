@@ -13,9 +13,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
+from backend.app.sandbox.manager import ExecutionResult
 from pydantic import BaseModel
 
-from backend.app.sandbox.manager import ExecutionResult
+# Re-exported for the frozen modes/base.py contract (which imports
+# ExecutionResult from this module). Do not remove.
+ExecutionResult = ExecutionResult  # noqa: PLW0127
 
 # Re-exported for the frozen modes/base.py contract (which imports
 # ExecutionResult from this module). Do not remove.
@@ -313,6 +316,14 @@ class Orchestrator:
             except Exception:
                 mode = None
 
+        # Detect multi-step pipeline mode
+        is_pipeline = mode is not None and hasattr(mode, "pipeline_steps")
+
+        if is_pipeline:
+            async for result in self._run_pipeline(task, mode):
+                yield result
+            return
+
         max_retries = self._max_retries()
         attempts = 0
         artifacts: list[str] = []
@@ -432,6 +443,159 @@ class Orchestrator:
             attempts=attempts,
             summary=summary,
             artifacts=artifacts,
+        )
+        self._results[task.id] = result
+        yield result
+
+
+    async def _run_pipeline(self, task: Task, mode: Any) -> AsyncIterator[RunResult]:
+        """Execute a multi-step pipeline mode.
+
+        Each step runs sequentially. Step N's output becomes context for
+        step N+1. Each step has its own retry budget. If any step exhausts
+        its retries, the pipeline stops and reports failure.
+        """
+        self._tasks[task.id] = task
+        self._ensure_task_persisted(task)
+
+        steps = getattr(mode, "pipeline_steps", [])
+        total_steps = len(steps)
+        context: dict[str, Any] = {}
+        artifacts: list[str] = []
+
+        # Initial running event
+        yield RunResult(
+            task_id=task.id,
+            status="running",
+            attempts=0,
+            summary=f"Starting pipeline: {total_steps} steps",
+            artifacts=[],
+        )
+
+        for step_idx, step in enumerate(steps):
+            step_name = getattr(step, "name", f"step_{step_idx}")
+            max_retries = getattr(step, "max_retries", 3)
+            timeout_s = getattr(step, "timeout_s", 60)
+            step_attempts = 0
+            step_succeeded = False
+            step_last_error: str | None = None
+
+            for step_attempts in range(1, max_retries + 1):
+                try:
+                    # Build prompt with accumulated context
+                    build_prompt = getattr(step, "build_prompt", None)
+                    if build_prompt is not None:
+                        prompt = build_prompt(task, context)
+                    else:
+                        prompt = f"Execute step: {step_name}"
+
+                    if step_last_error:
+                        prompt = prompt + "\n\nPrevious error:\n" + step_last_error + "\nFix the code accordingly."
+
+                    system_prompt = getattr(step, "system_prompt", None)
+                    raw_code = self._llm.generate(prompt, system=system_prompt)
+                    code = self._sanitize_code(raw_code)
+
+                    # Build files for this step
+                    files_fn = getattr(step, "files", None)
+                    if files_fn is not None:
+                        files = files_fn(task, context)
+                    else:
+                        files = self._build_files(task)
+
+                    # Execute in sandbox
+                    artifact_dir = Path("data/artifacts") / task.id
+                    artifact_dir.mkdir(parents=True, exist_ok=True)
+                    exec_result = await self._sandbox.execute(
+                        code, files, timeout_s=timeout_s, artifact_out_dir=artifact_dir
+                    )
+
+                    # Verify
+                    verify_fn = getattr(step, "verify", None)
+                    if verify_fn is not None:
+                        verification = verify_fn(exec_result, context)
+                    else:
+                        verification = type("V", (), {"ok": exec_result.exit_code == 0, "reason": "exit 0" if exec_result.exit_code == 0 else "failed"})()
+
+                    # Accumulate artifacts
+                    for a in (exec_result.artifacts or []):
+                        if a not in artifacts:
+                            artifacts.append(a)
+
+                    if getattr(verification, "ok", False):
+                        step_succeeded = True
+                        # Store step result in context
+                        context[step_name] = {
+                            "status": "passed",
+                            "stdout": exec_result.stdout,
+                            "stderr": exec_result.stderr,
+                            "exit_code": exec_result.exit_code,
+                            "artifacts": list(exec_result.artifacts or []),
+                            "parsed": extract_parsed(exec_result.stdout),
+                            "reason": getattr(verification, "reason", ""),
+                        }
+                        # Generate a terse summary
+                        try:
+                            summary = self._llm.generate(
+                                f"Summarize step '{step_name}' result in one sentence.\n"
+                                f"stdout:\n{exec_result.stdout}\n"
+                                f"stderr:\n{exec_result.stderr}",
+                                system="You are a terse status reporter. Output ONE plain-text sentence, no markdown, under 25 words.",
+                            )
+                        except Exception:
+                            summary = getattr(verification, "reason", "") or "passed"
+                        context[f"{step_name}_summary"] = summary
+
+                        yield RunResult(
+                            task_id=task.id,
+                            status="running",
+                            attempts=step_idx + 1,
+                            summary=f"Step {step_idx + 1}/{total_steps} ({step_name}): {summary}",
+                            artifacts=list(artifacts),
+                            parsed=context.get(step_name, {}).get("parsed"),
+                        )
+                        break
+
+                    step_last_error = (
+                        f"{getattr(verification, 'reason', 'verification failed')}\n"
+                        f"exit_code={exec_result.exit_code}\n"
+                        f"stderr:\n{exec_result.stderr}\n"
+                        f"stdout:\n{exec_result.stdout}"
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    step_last_error = f"{type(exc).__name__}: {exc}"
+
+                yield RunResult(
+                    task_id=task.id,
+                    status="running",
+                    attempts=step_idx + 1,
+                    summary=f"Step {step_idx + 1}/{total_steps} ({step_name}): attempt {step_attempts} failed — {(step_last_error or '')[:120]}",
+                    artifacts=list(artifacts),
+                )
+
+            if not step_succeeded:
+                # All retries for this step exhausted
+                self._update_task_persisted(task.id, "failed", step_last_error or "step failed")
+                result = RunResult(
+                    task_id=task.id,
+                    status="failed",
+                    attempts=step_idx + 1,
+                    summary=f"Step {step_idx + 1}/{total_steps} ({step_name}) failed: {(step_last_error or '')[:200]}",
+                    artifacts=list(artifacts),
+                )
+                self._results[task.id] = result
+                yield result
+                return
+
+        # All steps passed — generate final report
+        self._update_task_persisted(task.id, "passed", "all steps completed")
+        result = RunResult(
+            task_id=task.id,
+            status="passed",
+            attempts=total_steps,
+            summary=f"All {total_steps} steps completed successfully.",
+            artifacts=list(artifacts),
+            parsed=context.get(steps[-1].name if steps else "", {}).get("parsed"),
         )
         self._results[task.id] = result
         yield result

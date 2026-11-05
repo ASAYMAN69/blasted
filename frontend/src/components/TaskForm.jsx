@@ -18,7 +18,7 @@ import { EXAMPLES } from '../examples.js'
 import QuickActions from './QuickActions.jsx'
 import { EASE, ErrorState, Panel, Spinner } from './ui.jsx'
 
-const FILE_KEYS = new Set(['file', 'data', 'test', 'code'])
+const FILE_KEYS = new Set(['file', 'data', 'documents', 'sources', 'metrics', 'events', 'test', 'code'])
 
 // Mirrors backend PALETTES/CHART_KINDS in chart_mode.py.
 export const PALETTES = {
@@ -116,6 +116,31 @@ const MODE_META = {
     glyph: '✎',
     blurb: 'Submit a file plus the behavior you want. The agent patches a copy, re-runs it, and returns a diff.',
   },
+  vector1: {
+    label: 'Data → Decision',
+    glyph: '📊',
+    blurb: 'Messy data → profile → clean → analyze → chart → report. Turns hours of Excel work into 30 seconds.',
+  },
+  vector3: {
+    label: 'Invoice Reconciler',
+    glyph: '📄',
+    blurb: 'Documents → extract → parse → reconcile against POs → report. Automates invoice processing.',
+  },
+  vector4: {
+    label: 'Research Synthesizer',
+    glyph: '🔍',
+    blurb: 'Research → fetch sources → cross-reference → cite → report. Replaces hours of manual research synthesis.',
+  },
+  vector5: {
+    label: 'Incident Investigator',
+    glyph: '🚨',
+    blurb: 'Metrics → detect anomalies → root cause → fix → verify. Automates DevOps incident investigation.',
+  },
+  vector6: {
+    label: 'Data Pipeline',
+    glyph: '🧹',
+    blurb: 'Raw → clean → analyze → visualize → narrate. The full data science pipeline in one click.',
+  },
 }
 
 function UploadField({ id, value, onChange, placeholder, description }) {
@@ -201,9 +226,14 @@ export default function TaskForm() {
       .then((data) => {
         if (!alive) return
         const m = Array.isArray(data) ? data : []
-        setModes(m)
-        if (m.length > 0) {
-          setMode((cur) => (cur && m.some((x) => x.name === cur) ? cur : m[0].name))
+        // Show only the multi-step vector modes (the 5 business-value agents).
+        // The legacy single-step modes (csv/coder/chart/fix) are kept in the
+        // registry for backward compat but are not surfaced in the UI.
+        const vectors = m.filter((x) => x.name.startsWith('vector'))
+        const shown = vectors.length > 0 ? vectors : m
+        setModes(shown)
+        if (shown.length > 0) {
+          setMode((cur) => (cur && shown.some((x) => x.name === cur) ? cur : shown[0].name))
         }
       })
       .catch((err) => alive && setModesError(err))
