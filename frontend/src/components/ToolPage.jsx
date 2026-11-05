@@ -6,6 +6,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { listModes, submitTask } from '../api.js'
 import DropZone from './DropZone.jsx'
+import CsvPreview from './CsvPreview.jsx'
+import QuickActions from './QuickActions.jsx'
 import { EXAMPLES } from '../examples.js'
 import { EASE, ErrorState, Panel, Spinner } from './ui.jsx'
 
