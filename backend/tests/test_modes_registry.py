@@ -12,7 +12,7 @@ from backend.app.engine.modes import MODE_REGISTRY
 from backend.app.engine.orchestrator import Task
 from backend.app.sandbox.manager import ExecutionResult
 
-EXPECTED_MODES = {"csv", "coder", "chart", "fix"}
+EXPECTED_MODES = {"csv", "coder", "chart", "fix", "vector1", "vector3", "vector4", "vector5", "vector6"}
 
 
 def _task(mode: str, inputs: dict) -> Task:
@@ -45,14 +45,24 @@ def test_all_modes_build_prompts():
         "coder": {"file": "print(1)\n", "goal": "prints 1"},
         "chart": {"data": "a,b\n1,2\n", "request": "chart it"},
         "fix": {"file": "x = 1\n", "desired": "x == 2"},
+        "vector1": {"file": "a,b\n1,2\n", "question": "sum"},
+        "vector3": {"documents": "invoice text", "purchase_orders": "vendor,amount\nAcme,100\n"},
+        "vector4": {"sources": "https://example.com", "topic": "test topic"},
+        "vector5": {"metrics": "timestamp,val\n2024-01-01,1\n", "events": "timestamp,event\n2024-01-01,deploy\n"},
+        "vector6": {"file": "a,b\n1,2\n", "question": "sum"},
     }
     for name, cls in MODE_REGISTRY.items():
         instance = cls()
         task = _task(name, sample_inputs[name])
         plan = instance.build_plan_prompt(task)
-        code = instance.build_code_prompt(task, "plan text")
         assert isinstance(plan, str) and plan.strip()
-        assert isinstance(code, str) and code.strip()
+        # Single-step modes produce code prompts; pipeline modes define
+        # pipeline_steps instead (each step has its own prompt builder).
+        if hasattr(instance, "pipeline_steps"):
+            assert isinstance(instance.pipeline_steps, list) and len(instance.pipeline_steps) > 0
+        else:
+            code = instance.build_code_prompt(task, "plan text")
+            assert isinstance(code, str) and code.strip()
 
 
 @pytest.mark.parametrize(

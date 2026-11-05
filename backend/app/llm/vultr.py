@@ -6,10 +6,9 @@ provider whenever VULTR_LLM_API_KEY is set.
 """
 import json
 
-from openai import OpenAI
-
 from backend.app.config import Settings
 from backend.app.llm.base import LLMError
+from openai import OpenAI
 
 _DEFAULT_ENDPOINT = "https://api.vultrinference.com/v1"
 
