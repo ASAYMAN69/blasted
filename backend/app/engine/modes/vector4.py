@@ -65,7 +65,7 @@ def _fetch_verify(exec: ExecutionResult, ctx: dict) -> Verification:
 
 
 def _fetch_files(task: Task, ctx: dict) -> dict:
-    return {}
+    return {"sources.txt": _extract_text(task)}
 
 
 # ── Step 2: Extract claims ───────────────────────────────────────────────────

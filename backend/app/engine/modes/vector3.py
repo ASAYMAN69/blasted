@@ -101,7 +101,11 @@ def _parse_verify(exec: ExecutionResult, ctx: dict) -> Verification:
 
 
 def _parse_files(task: Task, ctx: dict) -> dict:
-    return {}
+    files = {"documents.txt": _extract_text(task)}
+    po = task.inputs.get("purchase_orders", "")
+    if isinstance(po, str) and po:
+        files["purchase_orders.csv"] = po
+    return files
 
 
 # ── Step 3: Reconcile ────────────────────────────────────────────────────────
@@ -137,6 +141,9 @@ def _reconcile_verify(exec: ExecutionResult, ctx: dict) -> Verification:
 
 
 def _reconcile_files(task: Task, ctx: dict) -> dict:
+    po = task.inputs.get("purchase_orders", "")
+    if isinstance(po, str) and po:
+        return {"purchase_orders.csv": po}
     return {}
 
 
