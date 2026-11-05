@@ -492,9 +492,10 @@ class Orchestrator:
                         prompt = prompt + "\n\nPrevious error:\n" + step_last_error + "\nFix the code accordingly."
 
                     system_prompt = getattr(step, "system_prompt", None)
+                    max_tokens = getattr(step, "max_tokens", 2048)
 
                     if is_text_only:
-                        result_text = self._llm.generate(prompt, system=system_prompt)
+                        result_text = self._llm.generate(prompt, system=system_prompt, max_tokens=max_tokens)
                         context[step_name] = {
                             "status": "passed",
                             "stdout": result_text,
@@ -516,7 +517,7 @@ class Orchestrator:
                         )
                         break
 
-                    raw_code = self._llm.generate(prompt, system=system_prompt)
+                    raw_code = self._llm.generate(prompt, system=system_prompt, max_tokens=max_tokens)
                     code = self._sanitize_code(raw_code)
 
                     files_fn = getattr(step, "files", None)
@@ -569,6 +570,7 @@ class Orchestrator:
                                 f"stdout:\n{exec_result.stdout}\n"
                                 f"stderr:\n{exec_result.stderr}",
                                 system="You are a terse status reporter. Output ONE plain-text sentence, no markdown, under 25 words.",
+                                max_tokens=256,
                             )
                         except Exception:
                             summary = getattr(verification, "reason", "") or "passed"
