@@ -232,7 +232,7 @@ class Vector1Mode(PipelineModeBase):
         Step(name="chart", system_prompt="You are a data visualization agent. Output ONLY raw Python code.",
              build_prompt=_chart_prompt, verify=_chart_verify, files=_chart_files, timeout_s=30),
         Step(name="report", system_prompt="You are a business analyst. Output ONLY the report text.",
-             build_prompt=_report_prompt, verify=_report_verify, files=lambda t, c: {}, timeout_s=10),
+             build_prompt=_report_prompt, verify=_report_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
     ]
 
     # For backward compat with single-step Mode protocol

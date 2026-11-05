@@ -267,11 +267,11 @@ class Vector5Mode(PipelineModeBase):
         Step(name="correlate", system_prompt="You are a correlation agent. Output ONLY raw Python code.",
              build_prompt=_correlate_prompt, verify=_correlate_verify, files=_correlate_files, timeout_s=30),
         Step(name="hypothesize", system_prompt="You are a root-cause analyst. Output ONLY a JSON object.",
-             build_prompt=_hypothesize_prompt, verify=_hypothesize_verify, files=_hypothesize_files, timeout_s=10),
+             build_prompt=_hypothesize_prompt, verify=_hypothesize_verify, files=_hypothesize_files, timeout_s=10, text_only=True),
         Step(name="verify_fix", system_prompt="You are a fix verification agent. Output ONLY raw Python code.",
              build_prompt=_verify_fix_prompt, verify=_verify_fix_verify, files=_verify_fix_files, timeout_s=30),
         Step(name="report", system_prompt="You are an SRE writing an incident report. Output ONLY the report text.",
-             build_prompt=_report_prompt, verify=_report_verify, files=lambda t, c: {}, timeout_s=10),
+             build_prompt=_report_prompt, verify=_report_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
     ]
 
     def build_plan_prompt(self, task):
