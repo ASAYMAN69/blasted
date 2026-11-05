@@ -1,23 +1,8 @@
-// App shell — "Ethereal Glass" dark premium.
-//
-// Layout model:
-//   - Desktop (lg+): a full-height glass side rail on the left (w-64) plus
-//     a main column padded to match it (lg:pl-64). This keeps navigation
-//     always visible instead of floating over content.
-//   - Mobile (< lg): a sticky floating glass top bar + a bottom tab bar
-//     with 44px+ touch targets (thumbs-first, safe-area aware).
-//
-// Why Framer Motion here: the entrance animations + the layoutId active-nav
-// indicator are the only "delight" moments; everything else (hover, press)
-// is CSS so it stays cheap. Reduced-motion is respected everywhere.
-//
-// The aurora background is position:fixed with pointer-events:none so it
-// never causes scroll jank, and backdrop-blur is only on the sticky chrome
-// (never on scrolling surfaces — that kills mobile perf).
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useState } from 'react'
 import { NavLink, Route, Routes, useLocation } from 'react-router-dom'
-import TaskForm from './components/TaskForm.jsx'
+import Home from './components/Home.jsx'
+import ToolPage from './components/ToolPage.jsx'
 import TaskDetail from './components/TaskDetail.jsx'
 import HistoryDashboard from './components/HistoryDashboard.jsx'
 
@@ -88,7 +73,7 @@ export default function App() {
         </div>
 
         <nav className="flex-1 space-y-1 px-3" aria-label="Primary">
-          <NavLinkItem to="/" end icon={ICONS.task} label="New task" />
+          <NavLinkItem to="/" end icon={ICONS.task} label="Home" />
           <NavLinkItem to="/history" icon={ICONS.history} label="Run history" />
         </nav>
 
@@ -137,7 +122,8 @@ export default function App() {
               transition={{ duration: 0.32, ease: EASE }}
             >
               <Routes>
-                <Route path="/" element={<TaskForm />} />
+                <Route path="/" element={<Home />} />
+                <Route path="/tools/:toolId" element={<ToolPage />} />
                 <Route path="/tasks/:id" element={<TaskDetail />} />
                 <Route path="/history" element={<HistoryDashboard />} />
               </Routes>
@@ -148,7 +134,7 @@ export default function App() {
         {/* Mobile floating tab bar */}
         <nav aria-label="Primary" className="fixed bottom-3 left-3 right-3 z-30 lg:hidden">
           <div className="mx-auto flex max-w-md items-stretch gap-1 glass p-1.5 safe-bottom">
-            <NavLinkItem to="/" end icon={ICONS.task} label="New" />
+            <NavLinkItem to="/" end icon={ICONS.task} label="Home" />
             <NavLinkItem to="/history" icon={ICONS.history} label="History" />
           </div>
         </nav>
