@@ -225,7 +225,7 @@ class Vector4Mode(PipelineModeBase):
         Step(name="report", system_prompt="You are a research analyst. Output ONLY raw Python code.",
              build_prompt=_report_prompt, verify=_report_verify, files=_report_files, timeout_s=30),
         Step(name="summarize", system_prompt="You are a research analyst. Output ONLY the report text.",
-             build_prompt=_summarize_prompt, verify=_summarize_verify, files=lambda t, c: {}, timeout_s=10),
+             build_prompt=_summarize_prompt, verify=_summarize_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
     ]
 
     def build_plan_prompt(self, task):

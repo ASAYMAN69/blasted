@@ -235,7 +235,7 @@ class Vector6Mode(PipelineModeBase):
         Step(name="charts", system_prompt="You are a data visualization agent. Output ONLY raw Python code.",
              build_prompt=_charts_prompt, verify=_charts_verify, files=_charts_files, timeout_s=30),
         Step(name="insights", system_prompt="You are a data scientist writing an insights report. Output ONLY the report text.",
-             build_prompt=_insights_prompt, verify=_insights_verify, files=lambda t, c: {}, timeout_s=10),
+             build_prompt=_insights_prompt, verify=_insights_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
     ]
 
     def build_plan_prompt(self, task):
