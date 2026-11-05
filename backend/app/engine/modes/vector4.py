@@ -40,15 +40,16 @@ def _preview(text: str, max_chars: int = 3000) -> str:
 def _fetch_prompt(task: Task, ctx: dict) -> str:
     sources = _extract_text(task)
     return (
-        "You are a text processor. Write a Python script that reads the provided "
-        "source texts and splits them into individual documents.\n\n"
+        "You are a text processor. Write a Python script that reads /workspace/sources.txt "
+        "and splits it into individual documents.\n\n"
         f"SOURCES:\n{sources[:3000]}\n\n"
         "The script must:\n"
-        "1. Split the input by ---SOURCE--- into individual documents\n"
-        "2. For each document, extract the main text content (strip any HTML if present)\n"
-        "3. Print: FETCHED_JSON: {\"sources\": [{\"index\": 0, \"text\": \"...\", \"chars\": N}]}\n"
-        "4. Print debug to stderr only\n"
-        "5. No network, no file writes outside /workspace\n\n"
+        "1. Read the text from /workspace/sources.txt\n"
+        "2. Split the input by ---SOURCE--- into individual documents\n"
+        "3. For each document, extract the main text content (strip any HTML if present)\n"
+        "4. Print: FETCHED_JSON: {\"sources\": [{\"index\": 0, \"text\": \"...\", \"chars\": N}]}\n"
+        "5. Print debug to stderr only\n"
+        "6. No network, no file writes outside /workspace\n\n"
         "Output ONLY raw Python code."
     )
 
