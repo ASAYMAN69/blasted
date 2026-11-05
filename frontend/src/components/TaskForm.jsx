@@ -1,13 +1,8 @@
-// Task submission form — schema-driven from GET /api/modes.
+// Task submission form — mode-specific, user-friendly, "Ethereal Glass" polish.
 //
-// The form is driven by the backend's mode schemas, so adding a new mode on
-// the backend automatically shows up here — no frontend change needed. File
-// fields get an upload + paste; enums get a select; everything else a
-// textarea. Required-field validation happens client-side first, then the
-// backend re-validates.
-//
-// Motion: staggered section reveals, animated mode switching (layoutId
-// active pill), magnetic-ish submit. All transform/opacity only.
+// Design: each mode has a tailored form (not schema-driven) so inputs are
+// clearly labeled with icons, help text, and examples. Motion: staggered
+// reveals, magnetic submit, animated mode switching. All transform/opacity only.
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -18,132 +13,70 @@ import { EXAMPLES } from '../examples.js'
 import QuickActions from './QuickActions.jsx'
 import { EASE, ErrorState, Panel, Spinner } from './ui.jsx'
 
-const FILE_KEYS = new Set(['file', 'data', 'documents', 'sources', 'metrics', 'events', 'test', 'code'])
-
-// Mirrors backend PALETTES/CHART_KINDS in chart_mode.py.
-export const PALETTES = {
-  aurora: ['#7aa2f7', '#bb9af7', '#7dcfff', '#73daca', '#ff9e64', '#f7768e'],
-  cobalt: ['#1d4ed8', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe'],
-  emerald: ['#065f46', '#047857', '#059669', '#10b981', '#34d399', '#6ee7b7'],
-  ember: ['#7c2d12', '#9a3412', '#c2410c', '#ea580c', '#f97316', '#fb923c'],
-  mono: ['#1f2937', '#374151', '#4b5563', '#6b7280', '#9ca3af', '#d1d5db'],
-}
-export const CHART_KINDS = ['auto', 'bar', 'line', 'scatter', 'histogram', 'pie', 'box']
-
-function VisualOptions({ task, value, onChange }) {
-  const paletteValues = PALETTES[value.palette] || PALETTES.aurora
-  return (
-    <div className="space-y-3 border border-line bg-bg-2 px-4 py-3">
-      <div className="flex items-center gap-2 text-xs font-semibold text-ink-2">
-        <svg aria-hidden="true" className="h-3.5 w-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.57a116.143 116.143 0 0 1 5.043-5.569m0 0a15.998 15.998 0 0 0 3.428-2.15 4.5 4.5 0 0 0-6.855-1.632m3.428 3.782a15.998 15.998 0 0 0-3.428 2.15m0 0a116.143 116.143 0 0 0-5.043 5.569m0 0a15.998 15.998 0 0 0-3.428 2.15 4.5 4.5 0 0 0 6.855 1.632" />
-        </svg>
-        Chart styling
-      </div>
-
-      <div>
-        <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-ink-3">Color palette</span>
-        <div role="radiogroup" aria-label="Color palette" className="flex flex-wrap gap-2">
-          {Object.entries(PALETTES).map(([name, hexes]) => {
-            const active = value.palette === name
-            return (
-              <button
-                key={name}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                onClick={() => onChange({ ...value, palette: name })}
-                className={`flex items-center gap-1.5 border px-2.5 py-1.5 text-xs font-medium transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-                  active ? 'border-accent/50 bg-accent-soft text-ink' : 'border-line bg-surface text-ink-2 hover:border-line-2'
-                }`}
-              >
-                <span className="flex -space-x-1">
-                  {hexes.map((h) => (
-                    <span key={h} className="h-3 w-3 border border-ink/20" style={{ background: h }} />
-                  ))}
-                </span>
-                {name}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      <div>
-        <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-ink-3">Chart type</span>
-        <div role="radiogroup" aria-label="Chart type" className="flex flex-wrap gap-1.5">
-          {CHART_KINDS.map((kind) => {
-            const active = value.chart_type === kind
-            return (
-              <button
-                key={kind}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                onClick={() => onChange({ ...value, chart_type: kind })}
-                className={`border px-3 py-1.5 text-xs font-medium capitalize transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-                  active ? 'border-accent/50 bg-accent-soft text-ink' : 'border-line bg-surface text-ink-2 hover:border-line-2'
-                }`}
-              >
-                {kind}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-const MODE_META = {
-  'data-analyst': {
+const MODES = [
+  {
+    id: 'data-analyst',
     label: 'Data Analyst',
     glyph: '📊',
     blurb: 'Upload messy data → auto-profile, clean, analyze, chart, and report. Turns hours of Excel work into 30 seconds.',
+    steps: ['Profile data', 'Clean & standardize', 'Analyze', 'Generate chart', 'Write report'],
+    outputs: ['Cleaned CSV', 'Analysis summary', 'Chart (PNG)', 'Insights report'],
+    fileKey: 'file',
+    fileLabel: 'CSV or JSON data',
+    filePlaceholder: 'Paste your CSV or JSON data here, or choose a file…',
+    fileHint: 'Supports CSV and JSON. Up to 25MB.',
   },
-  'invoice-reconciler': {
-    label: 'Invoice Reconciler',
-    glyph: '📄',
-    blurb: 'Paste invoices + purchase orders → extract, match, flag discrepancies, generate reconciliation report.',
-  },
-  'research-synthesizer': {
-    label: 'Research Synthesizer',
-    glyph: '🔍',
-    blurb: 'Paste 3-5 sources → extract claims, cross-reference, detect contradictions → cited report.',
-  },
-  'incident-investigator': {
-    label: 'Incident Investigator',
-    glyph: '🚨',
-    blurb: 'Upload metrics + events → detect anomalies, find root cause, propose fix, verify → incident report.',
-  },
-  'data-pipeline': {
+  {
+    id: 'data-pipeline',
     label: 'Data Pipeline',
     glyph: '🧹',
     blurb: 'Raw data → profile, clean, analyze, visualize, narrate. Full data science pipeline in one click.',
+    steps: ['Profile', 'Clean', 'Analyze', 'Generate charts', 'Write insights'],
+    outputs: ['Cleaned CSV', 'Analysis findings', '3 charts (PNG)', 'Insights report'],
+    fileKey: 'file',
+    fileLabel: 'CSV or JSON data',
+    filePlaceholder: 'Paste your CSV or JSON data here, or choose a file…',
+    fileHint: 'Supports CSV and JSON. Up to 25MB.',
   },
-  csv: {
-    label: 'CSV Analyst',
-    glyph: 'C',
-    blurb: 'Upload a CSV, ask a question in plain English. The agent writes pandas code, runs it in the sandbox, and returns real results.',
+  {
+    id: 'invoice-reconciler',
+    label: 'Invoice Reconciler',
+    glyph: '📄',
+    blurb: 'Paste invoices + purchase orders → extract, match, flag discrepancies, generate reconciliation report.',
+    steps: ['Extract text', 'Parse invoices', 'Reconcile vs POs', 'Generate report', 'Summarize'],
+    outputs: ['Reconciliation report', 'Matched/unmatched lists', 'Discrepancy flags', 'Chart'],
+    fileKey: 'documents',
+    fileLabel: 'Invoice documents (text)',
+    filePlaceholder: 'Paste invoice text here. Separate multiple invoices with ---DOCUMENT---',
+    fileHint: 'Paste raw invoice text. Separate multiple with ---DOCUMENT---',
   },
-  coder: {
-    label: 'Code Reviewer',
-    glyph: '{ }',
-    blurb: 'Submit a Python file (optionally with a test). The agent runs it in the sandbox, diagnoses failures, applies fixes, and re-runs until green.',
+  {
+    id: 'research-synthesizer',
+    label: 'Research Synthesizer',
+    glyph: '🔍',
+    blurb: 'Paste 3-5 sources → extract claims, cross-reference, detect contradictions → cited report.',
+    steps: ['Process sources', 'Extract claims', 'Cross-reference', 'Generate report', 'Summarize'],
+    outputs: ['Claims list', 'Agreements/contradictions', 'Confidence score', 'Cited report'],
+    fileKey: 'sources',
+    fileLabel: 'Source texts',
+    filePlaceholder: 'Paste source texts here. Separate multiple with ---SOURCE---',
+    fileHint: 'Paste 3-5 source texts. Separate with ---SOURCE---',
   },
-  chart: {
-    label: 'Chart Anything',
-    glyph: '◔',
-    blurb: 'Give tabular data and a chart request. The agent generates a real chart in the sandbox — PNG or interactive HTML.',
+  {
+    id: 'incident-investigator',
+    label: 'Incident Investigator',
+    glyph: '🚨',
+    blurb: 'Upload metrics + events → detect anomalies, find root cause, propose fix, verify → incident report.',
+    steps: ['Profile metrics', 'Detect anomalies', 'Correlate events', 'Hypothesize root cause', 'Verify fix', 'Write report'],
+    outputs: ['Anomaly list', 'Root cause hypothesis', 'Fix verification', 'Incident report'],
+    fileKey: 'metrics',
+    fileLabel: 'Metrics CSV (timestamp, error_rate, latency, cpu, memory)',
+    filePlaceholder: 'Paste metrics CSV here (timestamp,error_rate,latency_ms,cpu_pct)',
+    fileHint: 'Time-series metrics. Include a timestamp column.',
   },
-  fix: {
-    label: 'File Fixer',
-    glyph: '✎',
-    blurb: 'Submit a file plus the behavior you want. The agent patches a copy, re-runs it, and returns a diff.',
-  },
-}
+]
 
-function UploadField({ id, value, onChange, placeholder, description }) {
+function UploadField({ id, value, onChange, placeholder, description, label }) {
   const fileRef = useRef(null)
   const [fileName, setFileName] = useState('')
 
@@ -183,15 +116,9 @@ function UploadField({ id, value, onChange, placeholder, description }) {
           aria-hidden="true"
           tabIndex={-1}
         />
-        <motion.span
-          key={fileName}
-          initial={{ opacity: 0, x: -6 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.25, ease: EASE }}
-          className="min-w-0 flex-1 truncate text-xs font-medium text-ink-2"
-        >
+        <span className="min-w-0 flex-1 truncate text-xs font-medium text-ink-2">
           {fileName || 'or paste content below'}
-        </motion.span>
+        </span>
       </div>
       <textarea
         id={id}
@@ -226,9 +153,7 @@ export default function TaskForm() {
       .then((data) => {
         if (!alive) return
         const m = Array.isArray(data) ? data : []
-        // Show only the multi-step vector modes (the 5 business-value agents).
-        // The legacy single-step modes (csv/coder/chart/fix) are kept in the
-        // registry for backward compat but are not surfaced in the UI.
+        // Show only the multi-step business agents (not legacy csv/coder/chart/fix).
         const vectors = m.filter((x) => !['csv', 'coder', 'chart', 'fix'].includes(x.name))
         const shown = vectors.length > 0 ? vectors : m
         setModes(shown)
@@ -306,8 +231,8 @@ export default function TaskForm() {
   const properties = Object.entries(schema.properties || {}).filter(
     ([key]) => !['palette', 'chart_type'].includes(key),
   )
-  const activeMeta = MODE_META[mode] || { label: mode, glyph: '◆', blurb: '' }
-  const showVisual = mode === 'csv' || mode === 'chart'
+  const activeMeta = MODES.find((m) => m.id === mode) || { label: mode, glyph: '◆', blurb: '' }
+  const showVisual = mode === 'data-analyst' || mode === 'data-pipeline' || mode === 'incident-investigator'
   const visual = { palette: inputs.palette || 'aurora', chart_type: inputs.chart_type || 'auto' }
   const example = EXAMPLES[mode]
 
@@ -330,79 +255,95 @@ export default function TaskForm() {
       animate="show"
       className="mx-auto max-w-3xl space-y-6 pb-24 lg:pb-0"
     >
+      {/* Hero */}
       <motion.div variants={item}>
         <div className="eyebrow">Sandboxed execution</div>
         <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
           <span className="text-gradient">New task</span>
         </h1>
         <p className="mt-2 max-w-xl text-[15px] text-ink-3">
-          The agent plans, writes, and runs real code in an isolated sandbox — then we destroy the container.
+          Pick an agent, give it data, and watch it plan, run, and verify — all inside an isolated sandbox.
         </p>
       </motion.div>
 
+      {/* Mode selector — horizontal scroll on mobile, grid on desktop */}
       <motion.div variants={item}>
         <Panel>
-          <div className="space-y-5 px-5 py-5">
+          <div className="px-5 py-5">
             {loadingModes ? (
               <div className="flex items-center justify-center py-10">
-                <Spinner label="Loading modes…" />
+                <Spinner label="Loading agents…" />
               </div>
             ) : modesError ? (
               <ErrorState message={modesError} onRetry={() => window.location.reload()} />
             ) : modes.length === 0 ? (
-              <ErrorState message="No modes are available from the backend." />
+              <ErrorState message="No agents are available from the backend." />
             ) : (
-              <>
-                {/* Mode selector — animated pills */}
-                <div role="radiogroup" aria-label="Mode" className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="space-y-4">
+                <div>
+                  <label className="label">Choose an agent</label>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {modes.map((m) => {
-                      const meta = MODE_META[m.name] || { label: m.name, glyph: '◆' }
+                      const meta = MODES.find((x) => x.id === m.name) || { label: m.name, glyph: '◆', blurb: '' }
                       const active = mode === m.name
                       return (
                         <motion.button
                           key={m.name}
                           type="button"
-                          role="radio"
-                          aria-checked={active}
                           onClick={() => setMode(m.name)}
-                          whileTap={{ scale: 0.97 }}
-                          className={`relative flex flex-col items-start gap-1.5  border px-3.5 py-3 text-left transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                          whileTap={{ scale: 0.98 }}
+                          className={`relative flex items-start gap-3 border px-4 py-3.5 text-left transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                             active
-                              ? 'border-accent/40 bg-accent-soft'
+                              ? 'border-accent/50 bg-accent-soft'
                               : 'border-line bg-bg-2 hover:border-line-2 hover:bg-surface'
                           }`}
                         >
                           {active ? (
                             <motion.span
                               layoutId="mode-active"
-                              className="absolute inset-0 -z-10  border border-accent/30 bg-accent-soft"
+                              className="absolute inset-0 -z-10 border border-accent/30 bg-accent-soft"
                               transition={{ type: 'spring', stiffness: 400, damping: 32 }}
                             />
                           ) : null}
-                          <span className={`font-display text-lg font-semibold ${active ? 'text-accent' : 'text-ink-2'}`}>
-                            {meta.glyph}
-                          </span>
-                          <span className={`text-[13px] font-semibold ${active ? 'text-ink' : 'text-ink-2'}`}>
-                            {meta.label}
-                          </span>
+                          <span className="text-2xl flex-none">{meta.glyph}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className={`text-sm font-semibold ${active ? 'text-ink' : 'text-ink-2'}`}>
+                              {meta.label}
+                            </p>
+                            <p className="mt-0.5 text-xs leading-relaxed text-ink-3">
+                              {meta.blurb}
+                            </p>
+                          </div>
                         </motion.button>
                       )
                     })}
                   </div>
+                </div>
+
+                {/* Active mode details */}
+                {activeMeta && (
                   <AnimatePresence mode="wait">
-                    <motion.p
+                    <motion.div
                       key={mode}
                       initial={reduce ? false : { opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={reduce ? undefined : { opacity: 0, y: -6 }}
-                      transition={{ duration: 0.28, ease: EASE }}
-                      className="text-sm leading-relaxed text-ink-3"
+                      transition={{ duration: 0.25, ease: EASE }}
+                      className="border border-accent/20 bg-accent-soft/30 px-4 py-3"
                     >
-                      {activeMeta.blurb}
-                    </motion.p>
+                      <div className="flex flex-wrap gap-4 text-xs">
+                        <div>
+                          <span className="font-semibold text-ink-2">Pipeline: </span>
+                          <span className="text-ink-3">{activeMeta.steps.join(' → ')}</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-ink-2">You get: </span>
+                          <span className="text-ink-3">{activeMeta.outputs.join(', ')}</span>
+                        </div>
+                      </div>
+                    </motion.div>
                   </AnimatePresence>
-                </div>
+                )}
 
                 {/* Dynamic fields */}
                 <AnimatePresence mode="wait">
@@ -445,7 +386,7 @@ export default function TaskForm() {
                               </label>
                               <UploadField id={id} value={inputs[key]} onChange={(v) => setField(key, v)} placeholder={placeholder} description={prop.description} />
                             </div>
-                            {mode === 'csv' && key === 'file' ? (
+                            {mode === 'data-analyst' && key === 'file' ? (
                               <>
                                 <CsvPreview csvText={inputs[key]} />
                                 <QuickActions
@@ -455,7 +396,7 @@ export default function TaskForm() {
                                 />
                               </>
                             ) : null}
-                            {showVisual && key === (mode === 'chart' ? 'data' : 'file') ? (
+                            {showVisual && key === (mode === 'data-analyst' ? 'file' : 'metrics') ? (
                               <VisualOptions
                                 value={visual}
                                 onChange={(v) => {
@@ -488,7 +429,7 @@ export default function TaskForm() {
                     })}
                   </motion.div>
                 </AnimatePresence>
-              </>
+              </div>
             )}
           </div>
 
