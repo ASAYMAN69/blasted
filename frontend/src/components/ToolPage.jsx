@@ -9,13 +9,13 @@ import DropZone from './DropZone.jsx'
 import CsvPreview from './CsvPreview.jsx'
 import QuickActions from './QuickActions.jsx'
 import { EXAMPLES } from '../examples.js'
-import { EASE, ErrorState, Panel, Spinner } from './ui.jsx'
+import { EASE, ErrorState, Icon, Panel, Spinner } from './ui.jsx'
 
 // Tool metadata — what each tool DOES (not product descriptions)
 const TOOLS = {
   'data-analyst': {
     name: 'Data Analyst',
-    glyph: '📊',
+    icon: 'chart',
     tagline: 'Turn messy data into clean insights in 30 seconds',
     description: 'Upload a CSV or JSON file. The agent profiles the data, cleans it (fixes dates, nulls, formats), runs analysis, generates charts, and writes a plain-English report — all in one pass.',
     steps: ['Profile data', 'Clean & standardize', 'Analyze', 'Generate chart', 'Write report'],
@@ -28,7 +28,7 @@ const TOOLS = {
   },
   'data-pipeline': {
     name: 'Data Pipeline',
-    glyph: '🧹',
+    icon: 'pipeline',
     tagline: 'Raw data in, cleaned data + analysis + charts + insights out',
     description: 'Full data science pipeline in one click. The agent profiles your data, cleans it, runs exploratory analysis, generates multiple charts, and writes an insights report.',
     steps: ['Profile', 'Clean', 'Analyze', 'Generate charts', 'Write insights'],
@@ -41,7 +41,7 @@ const TOOLS = {
   },
   'invoice-reconciler': {
     name: 'Invoice Reconciler',
-    glyph: '📄',
+    icon: 'document',
     tagline: 'Paste invoices + purchase orders → get a reconciliation report',
     description: 'Paste invoice text and your purchase order CSV. The agent extracts structured data from each invoice, matches them against POs, flags discrepancies, and generates a reconciliation report with charts.',
     steps: ['Extract text', 'Parse invoices', 'Reconcile vs POs', 'Generate report', 'Summarize'],
@@ -54,7 +54,7 @@ const TOOLS = {
   },
   'research-synthesizer': {
     name: 'Research Synthesizer',
-    glyph: '🔍',
+    icon: 'search',
     tagline: 'Paste 3-5 sources → get a cited research report with contradictions flagged',
     description: 'Paste source texts. The agent extracts key claims from each, cross-references them, detects agreements and contradictions, and writes a cited research report with confidence scores.',
     steps: ['Process sources', 'Extract claims', 'Cross-reference', 'Generate report', 'Summarize'],
@@ -67,7 +67,7 @@ const TOOLS = {
   },
   'incident-investigator': {
     name: 'Incident Investigator',
-    glyph: '🚨',
+    icon: 'alert',
     tagline: 'Upload metrics + events → get anomaly detection, root cause, and fix verification',
     description: 'Upload time-series metrics and event logs. The agent detects anomalies, correlates them with deploys/config changes, hypothesizes root cause, verifies a fix, and writes an incident report.',
     steps: ['Profile metrics', 'Detect anomalies', 'Correlate events', 'Hypothesize root cause', 'Verify fix', 'Write report'],
@@ -200,10 +200,12 @@ export default function ToolPage() {
           All tools
         </Link>
         <div className="mt-3 flex items-start gap-4">
-          <span className="text-4xl">{tool.glyph}</span>
+          <span className="flex h-12 w-12 flex-none items-center justify-center border border-accent/30 bg-accent-soft text-accent">
+            <Icon name={tool.icon} className="h-6 w-6" strokeWidth={1.5} />
+          </span>
           <div>
             <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              <span className="text-gradient">{tool.name}</span>
+              <span className="text-ink">{tool.name}</span>
             </h1>
             <p className="mt-1 text-[15px] text-ink-3">{tool.tagline}</p>
           </div>
