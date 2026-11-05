@@ -78,6 +78,71 @@ const MODES = [
   },
 ]
 
+// VisualOptions — chart styling panel (palette swatches + chart type).
+function VisualOptions({ value, onChange }) {
+  return (
+    <div className="space-y-3 border border-line bg-bg-2 px-4 py-3">
+      <div className="flex items-center gap-2 text-xs font-semibold text-ink-2">
+        <svg aria-hidden="true" className="h-3.5 w-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.57a116.143 116.143 0 0 1 5.043-5.569m0 0a15.998 15.998 0 0 0 3.428-2.15 4.5 4.5 0 0 0-6.855-1.632m3.428 3.782a15.998 15.998 0 0 0-3.428 2.15m0 0a116.143 116.143 0 0 0-5.043 5.569m0 0a15.998 15.998 0 0 0-3.428 2.15 4.5 4.5 0 0 0 6.855 1.632" />
+        </svg>
+        Chart styling
+      </div>
+
+      <div>
+        <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-ink-3">Color palette</span>
+        <div role="radiogroup" aria-label="Color palette" className="flex flex-wrap gap-2">
+          {Object.entries(PALETTES).map(([name, hexes]) => {
+            const active = value.palette === name
+            return (
+              <button
+                key={name}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => onChange({ ...value, palette: name })}
+                className={`flex items-center gap-1.5 border px-2.5 py-1.5 text-xs font-medium transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                  active ? 'border-accent/50 bg-accent-soft text-ink' : 'border-line bg-surface text-ink-2 hover:border-line-2'
+                }`}
+              >
+                <span className="flex -space-x-1">
+                  {hexes.map((h) => (
+                    <span key={h} className="h-3 w-3 border border-ink/20" style={{ background: h }} />
+                  ))}
+                </span>
+                {name}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div>
+        <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-ink-3">Chart type</span>
+        <div role="radiogroup" aria-label="Chart type" className="flex flex-wrap gap-1.5">
+          {CHART_KINDS.map((kind) => {
+            const active = value.chart_type === kind
+            return (
+              <button
+                key={kind}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => onChange({ ...value, chart_type: kind })}
+                className={`border px-3 py-1.5 text-xs font-medium capitalize transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                  active ? 'border-accent/50 bg-accent-soft text-ink' : 'border-line bg-surface text-ink-2 hover:border-line-2'
+                }`}
+              >
+                {kind}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function UploadField({ id, value, onChange, placeholder, description, label }) {
   const fileRef = useRef(null)
   const [fileName, setFileName] = useState('')
