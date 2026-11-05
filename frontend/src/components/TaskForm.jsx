@@ -96,6 +96,31 @@ function VisualOptions({ task, value, onChange }) {
 }
 
 const MODE_META = {
+  'data-analyst': {
+    label: 'Data Analyst',
+    glyph: '📊',
+    blurb: 'Upload messy data → auto-profile, clean, analyze, chart, and report. Turns hours of Excel work into 30 seconds.',
+  },
+  'invoice-reconciler': {
+    label: 'Invoice Reconciler',
+    glyph: '📄',
+    blurb: 'Paste invoices + purchase orders → extract, match, flag discrepancies, generate reconciliation report.',
+  },
+  'research-synthesizer': {
+    label: 'Research Synthesizer',
+    glyph: '🔍',
+    blurb: 'Paste 3-5 sources → extract claims, cross-reference, detect contradictions → cited report.',
+  },
+  'incident-investigator': {
+    label: 'Incident Investigator',
+    glyph: '🚨',
+    blurb: 'Upload metrics + events → detect anomalies, find root cause, propose fix, verify → incident report.',
+  },
+  'data-pipeline': {
+    label: 'Data Pipeline',
+    glyph: '🧹',
+    blurb: 'Raw data → profile, clean, analyze, visualize, narrate. Full data science pipeline in one click.',
+  },
   csv: {
     label: 'CSV Analyst',
     glyph: 'C',
@@ -115,31 +140,6 @@ const MODE_META = {
     label: 'File Fixer',
     glyph: '✎',
     blurb: 'Submit a file plus the behavior you want. The agent patches a copy, re-runs it, and returns a diff.',
-  },
-  vector1: {
-    label: 'Data → Decision',
-    glyph: '📊',
-    blurb: 'Messy data → profile → clean → analyze → chart → report. Turns hours of Excel work into 30 seconds.',
-  },
-  vector3: {
-    label: 'Invoice Reconciler',
-    glyph: '📄',
-    blurb: 'Documents → extract → parse → reconcile against POs → report. Automates invoice processing.',
-  },
-  vector4: {
-    label: 'Research Synthesizer',
-    glyph: '🔍',
-    blurb: 'Research → fetch sources → cross-reference → cite → report. Replaces hours of manual research synthesis.',
-  },
-  vector5: {
-    label: 'Incident Investigator',
-    glyph: '🚨',
-    blurb: 'Metrics → detect anomalies → root cause → fix → verify. Automates DevOps incident investigation.',
-  },
-  vector6: {
-    label: 'Data Pipeline',
-    glyph: '🧹',
-    blurb: 'Raw → clean → analyze → visualize → narrate. The full data science pipeline in one click.',
   },
 }
 
@@ -229,7 +229,7 @@ export default function TaskForm() {
         // Show only the multi-step vector modes (the 5 business-value agents).
         // The legacy single-step modes (csv/coder/chart/fix) are kept in the
         // registry for backward compat but are not surfaced in the UI.
-        const vectors = m.filter((x) => x.name.startsWith('vector'))
+        const vectors = m.filter((x) => !['csv', 'coder', 'chart', 'fix'].includes(x.name))
         const shown = vectors.length > 0 ? vectors : m
         setModes(shown)
         if (shown.length > 0) {

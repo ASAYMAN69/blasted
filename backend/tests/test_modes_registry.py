@@ -12,7 +12,7 @@ from backend.app.engine.modes import MODE_REGISTRY
 from backend.app.engine.orchestrator import Task
 from backend.app.sandbox.manager import ExecutionResult
 
-EXPECTED_MODES = {"csv", "coder", "chart", "fix", "vector1", "vector3", "vector4", "vector5", "vector6"}
+EXPECTED_MODES = {"csv", "coder", "chart", "fix", "data-analyst", "invoice-reconciler", "research-synthesizer", "incident-investigator", "data-pipeline"}
 
 
 def _task(mode: str, inputs: dict) -> Task:
@@ -45,11 +45,11 @@ def test_all_modes_build_prompts():
         "coder": {"file": "print(1)\n", "goal": "prints 1"},
         "chart": {"data": "a,b\n1,2\n", "request": "chart it"},
         "fix": {"file": "x = 1\n", "desired": "x == 2"},
-        "vector1": {"file": "a,b\n1,2\n", "question": "sum"},
-        "vector3": {"documents": "invoice text", "purchase_orders": "vendor,amount\nAcme,100\n"},
-        "vector4": {"sources": "https://example.com", "topic": "test topic"},
-        "vector5": {"metrics": "timestamp,val\n2024-01-01,1\n", "events": "timestamp,event\n2024-01-01,deploy\n"},
-        "vector6": {"file": "a,b\n1,2\n", "question": "sum"},
+        "data-analyst": {"file": "a,b\n1,2\n", "question": "sum"},
+        "invoice-reconciler": {"documents": "invoice text", "purchase_orders": "vendor,amount\nAcme,100\n"},
+        "research-synthesizer": {"sources": "https://example.com", "topic": "test topic"},
+        "incident-investigator": {"metrics": "timestamp,val\n2024-01-01,1\n", "events": "timestamp,event\n2024-01-01,deploy\n"},
+        "data-pipeline": {"file": "a,b\n1,2\n", "question": "sum"},
     }
     for name, cls in MODE_REGISTRY.items():
         instance = cls()

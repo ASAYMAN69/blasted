@@ -214,7 +214,7 @@ def _insights_verify(exec: ExecutionResult, ctx: dict) -> Verification:
 
 
 class Vector6Mode(PipelineModeBase):
-    name = "vector6"
+    name = "data-pipeline"
     input_schema = {
         "type": "object",
         "properties": {
