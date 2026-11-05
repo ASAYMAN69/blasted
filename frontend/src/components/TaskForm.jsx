@@ -15,6 +15,16 @@ import { EASE, ErrorState, Panel, Spinner } from './ui.jsx'
 
 const FILE_KEYS = new Set(['file', 'data', 'documents', 'sources', 'metrics', 'events', 'test', 'code'])
 
+// Mirrors backend PALETTES/CHART_KINDS in chart_mode.py.
+export const PALETTES = {
+  aurora: ['#7aa2f7', '#bb9af7', '#7dcfff', '#73daca', '#ff9e64', '#f7768e'],
+  cobalt: ['#1d4ed8', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe'],
+  emerald: ['#065f46', '#047857', '#059669', '#10b981', '#34d399', '#6ee7b7'],
+  ember: ['#7c2d12', '#9a3412', '#c2410c', '#ea580c', '#f97316', '#fb923c'],
+  mono: ['#1f2937', '#374151', '#4b5563', '#6b7280', '#9ca3af', '#d1d5db'],
+}
+export const CHART_KINDS = ['auto', 'bar', 'line', 'scatter', 'histogram', 'pie', 'box']
+
 const MODES = [
   {
     id: 'data-analyst',
