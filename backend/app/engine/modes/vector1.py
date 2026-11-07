@@ -51,8 +51,9 @@ def _profile_prompt(task: Task, ctx: dict) -> str:
         "3. Print a single line: PROFILE_JSON: {\"shape\": [rows, cols], \"columns\": [...],\n"
         "   \"nulls\": {...}, \"stats\": {...}, \"issues\": [...]}\n"
         "4. Print debug to stderr only\n"
-        "5. No network, no file writes outside /workspace\n\n"
-        "Output ONLY raw Python code."
+        "5. No network, no file writes outside /workspace\n"
+        "6. Keep the script under 50 lines. Use concise code.\n\n"
+        "Output ONLY raw Python code. No markdown fences."
     )
 
 
@@ -226,7 +227,7 @@ class Vector1Mode(PipelineModeBase):
 
     pipeline_steps = [
         Step(name="profile", system_prompt="You are a data profiler. Output ONLY raw Python code.",
-             build_prompt=_profile_prompt, verify=_profile_verify, files=_profile_files, timeout_s=30),
+             build_prompt=_profile_prompt, verify=_profile_verify, files=_profile_files, timeout_s=30, max_tokens=4096),
         Step(name="clean", system_prompt="You are a data cleaning agent. Output ONLY raw Python code.",
              build_prompt=_clean_prompt, verify=_clean_verify, files=_clean_files, timeout_s=30),
         Step(name="analyze", system_prompt="You are a data analyst. Output ONLY raw Python code.",
