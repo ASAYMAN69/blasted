@@ -112,16 +112,27 @@ def _chart_prompt(task: Task, ctx: dict) -> str:
     anomalies = ctx.get("detect_anomalies", {}).get("stdout", "")
     return (
         "You are a data visualization agent. Write a Python script that reads "
-        "/workspace/metrics.csv and creates a time-series chart highlighting the anomalies.\n\n"
-        f"ANOMALIES:\n{anomalies[:1500]}\n\n"
+        "/workspace/metrics.csv and creates a time-series chart.\n\n"
+        f"ANOMALIES:\n{anomalies[:1000]}\n\n"
+        "Use this EXACT template and only change column names if needed:\n\n"
+        "import pandas as pd, matplotlib\n"
+        "matplotlib.use('Agg')\n"
+        "import matplotlib.pyplot as plt\n"
+        "df = pd.read_csv('/workspace/metrics.csv')\n"
+        "df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')\n"
+        "fig, axes = plt.subplots(3, 1, figsize=(10, 8), sharex=True)\n"
+        "for ax, col in zip(axes, ['error_rate', 'latency_ms', 'cpu_pct']):\n"
+        "    ax.plot(df['timestamp'], df[col], color='#7aa2f7', linewidth=1.2)\n"
+        "    ax.set_ylabel(col)\n"
+        "    ax.grid(True, alpha=0.3)\n"
+        "plt.tight_layout()\n"
+        "plt.savefig('/workspace/chart.png', dpi=120)\n"
+        "print('chart saved')\n\n"
         "The script must:\n"
-        "1. Read /workspace/metrics.csv with pandas\n"
-        "2. Plot each numeric metric (error_rate, latency_ms, cpu_pct) over time\n"
-        "3. Highlight anomaly timestamps with red markers\n"
-        "4. Save to /workspace/chart.png\n"
-        "5. Use `print(..., file=sys.stderr)` for debug; stdout stays clean\n"
-        "6. No network, no file writes outside /workspace\n\n"
-        "Output ONLY raw Python code."
+        "1. Save to /workspace/chart.png\n"
+        "2. Use `print(..., file=sys.stderr)` for debug; stdout stays clean\n"
+        "3. No network, no file writes outside /workspace\n\n"
+        "Output ONLY raw Python code. No markdown fences."
     )
 
 
@@ -277,11 +288,11 @@ class Vector5Mode(PipelineModeBase):
 
     pipeline_steps = [
         Step(name="profile", system_prompt="You are a DevOps metrics profiler. Output ONLY raw Python code.",
-             build_prompt=_profile_prompt, verify=_profile_verify, files=_profile_files, timeout_s=30),
+             build_prompt=_profile_prompt, verify=_profile_verify, files=_profile_files, timeout_s=30, max_tokens=4096),
         Step(name="detect_anomalies", system_prompt="You are an anomaly detection agent. Output ONLY raw Python code.",
-             build_prompt=_anomaly_prompt, verify=_anomaly_verify, files=_anomaly_files, timeout_s=30),
+             build_prompt=_anomaly_prompt, verify=_anomaly_verify, files=_anomaly_files, timeout_s=30, max_tokens=4096),
         Step(name="chart", system_prompt="You are a data visualization agent. Output ONLY raw Python code.",
-             build_prompt=_chart_prompt, verify=_chart_verify, files=_chart_files, timeout_s=30),
+             build_prompt=_chart_prompt, verify=_chart_verify, files=_chart_files, timeout_s=30, max_tokens=4096),
         Step(name="correlate", system_prompt="You are a correlation agent. Output ONLY a JSON object.",
              build_prompt=_correlate_prompt, verify=_correlate_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
         Step(name="hypothesize", system_prompt="You are a root-cause analyst. Output ONLY a JSON object.",
