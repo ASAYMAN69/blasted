@@ -156,7 +156,7 @@ def _correlate_prompt(task: Task, ctx: dict) -> str:
         "match each anomaly to nearby events (deploys, config changes) within +/- 30 minutes.\n\n"
         f"ANOMALIES:\n{anomalies[:2000]}\n\n"
         f"EVENTS:\n{events[:1500]}\n\n"
-        "Output ONLY a JSON object (no code) of the form:\n"
+        "Output ONLY a single JSON object (no code) of the form:\n"
         "{\"correlations\": [{\"anomaly\": {\"metric\": \"...\", \"timestamp\": \"...\"}, "
         "\"correlated_events\": [{\"event\": \"...\", \"time\": \"...\", \"score\": 0.0}], "
         "\"top_hypothesis\": \"...\"}], \"summary\": \"...\"}\n"
@@ -192,7 +192,7 @@ def _hypothesize_prompt(task: Task, ctx: dict) -> str:
         "Write a JSON object (no code) with:\n"
         "{\"hypothesis\": \"...\", \"confidence\": 0.0-1.0, \"evidence\": [\"...\"], "
         "\"recommended_action\": \"...\", \"prevention\": \"...\"}\n\n"
-        "Output ONLY the JSON."
+        "Output ONLY a single JSON object. Exactly one object, no multiple objects, no extra text."
     )
 
 
@@ -224,7 +224,7 @@ def _verify_fix_prompt(task: Task, ctx: dict) -> str:
         "\"expected_recovery_time\": \"<string: e.g. 5 minutes>\", "
         "\"improvement\": \"<string: e.g. 95% reduction>\", "
         "\"confidence\": <float 0-1>}\n\n"
-        "Output ONLY the JSON."
+        "Output ONLY a single JSON object. Exactly one object, no multiple objects, no extra text."
     )
 
 
@@ -293,11 +293,11 @@ class Vector5Mode(PipelineModeBase):
              build_prompt=_anomaly_prompt, verify=_anomaly_verify, files=_anomaly_files, timeout_s=30, max_tokens=4096),
         Step(name="chart", system_prompt="You are a data visualization agent. Output ONLY raw Python code.",
              build_prompt=_chart_prompt, verify=_chart_verify, files=_chart_files, timeout_s=30, max_tokens=4096),
-        Step(name="correlate", system_prompt="You are a correlation agent. Output ONLY a JSON object.",
+        Step(name="correlate", system_prompt="You are a correlation agent. Output ONLY a single JSON object. Exactly one object, no arrays of objects, no extra text.",
              build_prompt=_correlate_prompt, verify=_correlate_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
-        Step(name="hypothesize", system_prompt="You are a root-cause analyst. Output ONLY a JSON object.",
+        Step(name="hypothesize", system_prompt="You are a root-cause analyst. Output ONLY a single JSON object. Exactly one object, no arrays of objects, no extra text.",
              build_prompt=_hypothesize_prompt, verify=_hypothesize_verify, files=_hypothesize_files, timeout_s=10, text_only=True),
-        Step(name="verify_fix", system_prompt="You are a fix verification agent. Output ONLY a JSON object.",
+        Step(name="verify_fix", system_prompt="You are a fix verification agent. Output ONLY a single JSON object. Exactly one object, no arrays of objects, no extra text.",
              build_prompt=_verify_fix_prompt, verify=_verify_fix_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
         Step(name="report", system_prompt="You are an SRE writing an incident report. Output ONLY the report text.",
              build_prompt=_report_prompt, verify=_report_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),

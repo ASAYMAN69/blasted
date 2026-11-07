@@ -45,7 +45,7 @@ def _extract_prompt(task: Task, ctx: dict) -> str:
         f"DOCUMENTS:\n{docs[:3000]}\n\n"
         "Output a JSON object:\n"
         "{\"documents\": [{\"index\": 0, \"text\": \"<the document text>\", \"lines\": N}]}\n\n"
-        "Output ONLY the JSON."
+        "Output ONLY a single JSON object. Exactly one object, no multiple objects, no extra text."
     )
 
 
@@ -76,7 +76,7 @@ def _parse_prompt(task: Task, ctx: dict) -> str:
         "{\"invoices\": [{\"vendor\": \"...\", \"invoice_number\": \"...\", "
         "\"date\": \"...\", \"total\": N, \"line_items\": [{\"desc\": \"...\", \"qty\": N, "
         "\"unit_price\": N, \"total\": N}]}]}\n\n"
-        "Output ONLY the JSON."
+        "Output ONLY a single JSON object. Exactly one object, no multiple objects, no extra text."
     )
 
 
@@ -113,7 +113,7 @@ def _reconcile_prompt(task: Task, ctx: dict) -> str:
         "\"discrepancies\": [{\"invoice\": \"...\", \"po\": \"...\", \"issue\": \"...\"}], "
         "\"summary\": {\"total_invoiced\": N, \"total_matched\": N, "
         "\"total_disputed\": N, \"match_rate\": 0.0}}\n\n"
-        "Output ONLY the JSON."
+        "Output ONLY a single JSON object. Exactly one object, no multiple objects, no extra text."
     )
 
 
@@ -202,11 +202,11 @@ class Vector3Mode(PipelineModeBase):
     }
 
     pipeline_steps = [
-        Step(name="extract", system_prompt="You are a document text extractor. Output ONLY a JSON object.",
+        Step(name="extract", system_prompt="You are a document text extractor. Output ONLY a single JSON object. Exactly one object, no arrays of objects, no extra text.",
              build_prompt=_extract_prompt, verify=_extract_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
-        Step(name="parse", system_prompt="You are an invoice parser. Output ONLY a JSON object.",
+        Step(name="parse", system_prompt="You are an invoice parser. Output ONLY a single JSON object. Exactly one object, no arrays of objects, no extra text.",
              build_prompt=_parse_prompt, verify=_parse_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
-        Step(name="reconcile", system_prompt="You are a reconciliation agent. Output ONLY a JSON object.",
+        Step(name="reconcile", system_prompt="You are a reconciliation agent. Output ONLY a single JSON object. Exactly one object, no arrays of objects, no extra text.",
              build_prompt=_reconcile_prompt, verify=_reconcile_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
         Step(name="report", system_prompt="You are a finance analyst. Output ONLY the report text.",
              build_prompt=_report_prompt, verify=_report_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
