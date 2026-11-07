@@ -117,13 +117,12 @@ def _analyze_prompt(task: Task, ctx: dict) -> str:
         f"CLEANING LOG:\n{clean_log[:800]}\n\n"
         "The script must:\n"
         "1. Read /workspace/cleaned.csv if it exists, otherwise /workspace/input.csv, with pandas\n"
-        "2. Compute the answer to the user's question\n"
-        "3. Detect anomalies (spikes, drops, outliers) if relevant\n"
-        "4. Compute trends (month-over-month, week-over-week) if relevant\n"
-        "5. Print: ANALYSIS_JSON: {\"summary\": \"...\", \"numbers\": {...}, \"insights\": [...], \"anomalies\": [...]}\n"
-        "6. Print debug to stderr only\n"
-        "7. No network, no file writes outside /workspace\n\n"
-        "Output ONLY raw Python code."
+        "2. Compute the answer to the user's question (keep it simple and correct)\n"
+        "3. Print: ANALYSIS_JSON: {\"summary\": \"...\", \"numbers\": {...}, \"insights\": [...]}\n"
+        "4. Print debug to stderr only\n"
+        "5. No network, no file writes outside /workspace\n"
+        "6. Keep the script under 40 lines.\n\n"
+        "Output ONLY raw Python code. No markdown fences."
     )
 
 
@@ -154,17 +153,30 @@ def _chart_prompt(task: Task, ctx: dict) -> str:
     palette_line = ", ".join(hexes)
     return (
         "You are a data visualization agent. Write a Python script that reads "
-        "/workspace/cleaned.csv and creates a chart based on the analysis below.\n\n"
-        f"ANALYSIS:\n{analysis[:1000]}\n\n"
+        "/workspace/cleaned.csv and creates ONE simple chart.\n\n"
+        f"ANALYSIS:\n{analysis[:800]}\n\n"
         f"COLOR PALETTE (use these exact hex colors): {palette_line}\n\n"
+        "Use this EXACT template and only change the column names and title:\n\n"
+        "import pandas as pd, matplotlib\n"
+        "matplotlib.use('Agg')\n"
+        "import matplotlib.pyplot as plt\n"
+        "df = pd.read_csv('/workspace/cleaned.csv')\n"
+        "# Pick the most informative numeric column and a grouping column from df.columns\n"
+        "group_col = df.select_dtypes(include='object').columns[0] if len(df.select_dtypes(include='object').columns) else df.columns[0]\n"
+        "num_col = df.select_dtypes(include='number').columns[0]\n"
+        "agg = df.groupby(group_col)[num_col].mean().sort_values(ascending=False).head(10)\n"
+        "fig, ax = plt.subplots(figsize=(8,5))\n"
+        "ax.bar(agg.index.astype(str), agg.values, color='" + hexes[0] + "')\n"
+        "ax.set_title('Average ' + num_col + ' by ' + group_col)\n"
+        "plt.xticks(rotation=45, ha='right')\n"
+        "plt.tight_layout()\n"
+        "plt.savefig('/workspace/chart.png', dpi=120)\n"
+        "print('chart saved')\n\n"
         "The script must:\n"
-        "1. Read /workspace/cleaned.csv if it exists, otherwise /workspace/input.csv, with pandas\n"
-        "2. Create a chart that visualizes the key finding from the analysis\n"
-        "3. Save to /workspace/chart.png\n"
-        "4. Use `print(..., file=sys.stderr)` for debug; stdout stays clean\n"
-        "5. No network, no file writes outside /workspace\n"
-        "6. Apply the COLOR PALETTE to all data series\n\n"
-        "Output ONLY raw Python code."
+        "1. Save to /workspace/chart.png\n"
+        "2. Use `print(..., file=sys.stderr)` for debug; stdout stays clean\n"
+        "3. No network, no file writes outside /workspace\n\n"
+        "Output ONLY raw Python code. No markdown fences."
     )
 
 
@@ -231,9 +243,9 @@ class Vector1Mode(PipelineModeBase):
         Step(name="clean", system_prompt="You are a data cleaning agent. Output ONLY raw Python code.",
              build_prompt=_clean_prompt, verify=_clean_verify, files=_clean_files, timeout_s=30),
         Step(name="analyze", system_prompt="You are a data analyst. Output ONLY raw Python code.",
-             build_prompt=_analyze_prompt, verify=_analyze_verify, files=_analyze_files, timeout_s=30),
+             build_prompt=_analyze_prompt, verify=_analyze_verify, files=_analyze_files, timeout_s=30, max_tokens=4096),
         Step(name="chart", system_prompt="You are a data visualization agent. Output ONLY raw Python code.",
-             build_prompt=_chart_prompt, verify=_chart_verify, files=_chart_files, timeout_s=30),
+             build_prompt=_chart_prompt, verify=_chart_verify, files=_chart_files, timeout_s=30, max_tokens=4096),
         Step(name="report", system_prompt="You are a business analyst. Output ONLY the report text.",
              build_prompt=_report_prompt, verify=_report_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
     ]
