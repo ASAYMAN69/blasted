@@ -6,30 +6,34 @@ import { useCallback, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { EASE } from './ui.jsx'
 
-export default function DropZone({ id, value, onChange, placeholder, label, hint, rows = 8 }) {
+export default function DropZone({ id, value, onChange, placeholder, label, hint, rows = 8, multiple = false, filePrefix = '' }) {
   const reduce = useReducedMotion()
   const inputRef = useRef(null)
   const [dragging, setDragging] = useState(false)
   const [fileName, setFileName] = useState('')
 
-  const readFile = useCallback(async (file) => {
-    if (!file) return
+  const readFiles = useCallback(async (files) => {
+    const list = Array.from(files || []).slice(0, 20)
+    if (list.length === 0) return
     try {
-      const text = await file.text()
-      onChange(text)
-      setFileName(`${file.name} · ${(file.size / 1024).toFixed(1)} KB`)
+      const texts = await Promise.all(list.map((f) => f.text()))
+      const joined = texts.map((t) => (filePrefix ? filePrefix + t : t)).join('\n')
+      onChange(joined)
+      setFileName(list.length === 1
+        ? `${list[0].name} · ${(list[0].size / 1024).toFixed(1)} KB`
+        : `${list.length} files · ${(list.reduce((a, f) => a + f.size, 0) / 1024).toFixed(1)} KB`)
     } catch {
       setFileName('Could not read file')
     }
-  }, [onChange])
+  }, [onChange, filePrefix])
 
   const handleDrop = useCallback((e) => {
     e.preventDefault()
     e.stopPropagation()
     setDragging(false)
-    const file = e.dataTransfer?.files?.[0]
-    if (file) readFile(file)
-  }, [readFile])
+    const files = e.dataTransfer?.files
+    if (files && files.length) readFiles(files)
+  }, [readFiles])
 
   const handleDragOver = useCallback((e) => {
     e.preventDefault()
@@ -61,7 +65,8 @@ export default function DropZone({ id, value, onChange, placeholder, label, hint
         <input
           ref={inputRef}
           type="file"
-          onChange={(e) => readFile(e.target.files?.[0])}
+          onChange={(e) => readFiles(e.target.files)}
+          multiple={multiple}
           className="sr-only"
           aria-hidden="true"
           tabIndex={-1}
@@ -70,7 +75,7 @@ export default function DropZone({ id, value, onChange, placeholder, label, hint
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
         </svg>
         <p className="mt-2 text-sm font-medium text-ink-2">
-          {dragging ? 'Drop file here' : 'Drag & drop a file, or click to browse'}
+          {dragging ? 'Drop file(s) here' : (multiple ? 'Drag & drop files, or click to browse (max 20)' : 'Drag & drop a file, or click to browse')}
         </p>
         <button
           type="button"

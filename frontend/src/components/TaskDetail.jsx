@@ -89,7 +89,7 @@ export default function TaskDetail() {
       initial={reduce ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: EASE }}
-      className="mx-auto max-w-3xl space-y-5"
+      className="mx-auto max-w-6xl space-y-5"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">

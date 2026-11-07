@@ -9,6 +9,7 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { artifactUrl, fetchArtifactText } from '../api.js'
+import Markdown from './Markdown.jsx'
 import { EASE, CodeBlock, EmptyState, ErrorState, Panel, PanelHeader, Spinner } from './ui.jsx'
 
 const IMAGE_RE = /\.(png|jpe?g|gif|webp|svg|bmp)$/i
@@ -16,6 +17,7 @@ const HTML_RE = /\.(html?)$/i
 const JSON_RE = /\.json$/i
 const CSV_RE = /\.csv$/i
 const DIFF_RE = /\.(diff|patch)$/i
+const MD_RE = /\.(md|markdown)$/i
 
 // Friendly display names for known artifact filenames.
 const FRIENDLY = {
@@ -31,9 +33,15 @@ function displayName(name) {
   return FRIENDLY[name] || name
 }
 
+function looksLikeMarkdown(text) {
+  if (!text || typeof text !== 'string') return false
+  return /(^|\n)#{1,6}\s|(\*\*|__).+?(\*\*|__)|(^|\n)[-*+]\s|```/.test(text)
+}
+
 function kindFor(name) {
   if (IMAGE_RE.test(name)) return 'image'
   if (HTML_RE.test(name)) return 'html'
+  if (MD_RE.test(name)) return 'markdown'
   if (JSON_RE.test(name)) return 'json'
   if (CSV_RE.test(name)) return 'csv'
   if (DIFF_RE.test(name)) return 'diff'
@@ -126,6 +134,32 @@ function JsonView({ text }) {
     parsed = JSON.parse(text)
   } catch {
     return <CodeBlock text={text} />
+  }
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    // Single object → render as a key/value table.
+    const entries = Object.entries(parsed)
+    return (
+      <div className="overflow-x-auto border border-line">
+        <table className="min-w-full text-sm">
+          <tbody className="divide-y divide-line">
+            {entries.map(([k, v]) => (
+              <tr key={k} className="transition-colors duration-fast ease-out hover:bg-surface-2">
+                <th scope="row" className="border-r border-line bg-bg-2 px-3 py-2.5 text-left font-mono text-[11px] font-semibold uppercase tracking-wider text-ink-2">
+                  {k}
+                </th>
+                <td className="px-3 py-2.5 text-ink-2">
+                  {typeof v === 'object' && v !== null ? (
+                    <pre className="whitespace-pre-wrap font-mono text-xs text-ink-2">{JSON.stringify(v, null, 2)}</pre>
+                  ) : (
+                    String(v ?? '')
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
   }
   if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object' && parsed[0] !== null) {
     const headers = Array.from(new Set(parsed.flatMap((o) => Object.keys(o))))
@@ -238,6 +272,12 @@ function ArtifactPanel({ taskId, name }) {
     body = <DataTable rows={parseCsv(text)} />
   } else if (kind === 'diff') {
     body = <DiffView text={text} />
+  } else if (kind === 'markdown' || looksLikeMarkdown(text)) {
+    body = (
+      <div className="px-1">
+        <Markdown text={text} />
+      </div>
+    )
   } else {
     body = <CodeBlock text={text} />
   }
@@ -271,7 +311,7 @@ export default function ArtifactViewer({ taskId, artifacts = [] }) {
       <Panel>
         <PanelHeader title="Artifacts" subtitle="Files produced by the sandbox" />
         <EmptyState title="No artifacts yet">
-          Artifacts appear after the sandbox run completes.
+          Artifacts will show here.
         </EmptyState>
       </Panel>
     )
