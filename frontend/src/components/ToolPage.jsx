@@ -19,25 +19,12 @@ const TOOLS = {
     tagline: 'Turn messy data into clean insights in 30 seconds',
     description: 'Upload a CSV or JSON file. The agent profiles the data, cleans it (fixes dates, nulls, formats), runs analysis, generates charts, and writes a plain-English report — all in one pass.',
     useFor: ['Cleaning messy exports from Excel/CRM', 'Quick stats and charts without writing code', 'Spotting trends and outliers in tabular data', 'Producing a shareable report from raw data'],
+    theme: { accent: '260 90% 72%', accent2: '165 80% 55%', variant: 'default', bg: 'radial-gradient(60% 45% at 12% 8%, hsl(260 90% 55% / 0.13), transparent 60%)' },
     steps: ['Profile data', 'Clean & standardize', 'Analyze', 'Generate chart', 'Write report'],
     outputs: ['Cleaned dataset', 'Statistical summary', 'Chart (PNG)', 'Insights report'],
     inputs: [
-      { key: 'file', label: 'Your data', type: 'file', placeholder: 'Paste CSV or JSON data here, or drag & drop a file…', hint: 'Supports CSV and JSON. Up to 25MB.', rows: 8 },
+      { key: 'file', label: 'Your data', type: 'file', multiple: true, placeholder: 'Paste CSV or JSON data here, or drag & drop a file…', hint: 'Supports CSV and JSON. Up to 25MB.', rows: 8 },
       { key: 'question', label: 'What do you want to know?', type: 'text', placeholder: 'e.g. What is the average revenue by region? Show it as a bar chart.', hint: 'Ask in plain English. The agent figures out the rest.', rows: 2 },
-    ],
-    visual: true,
-  },
-  'data-pipeline': {
-    name: 'Data Pipeline',
-    icon: 'pipeline',
-    tagline: 'Raw data in, cleaned data + analysis + charts + insights out',
-    description: 'Full data science pipeline in one click. The agent profiles your data, cleans it, runs exploratory analysis, generates multiple charts, and writes an insights report.',
-    useFor: ['Exploratory analysis of a new dataset', 'Generating multiple charts in one run', 'End-to-end data science without setup', 'Insights report for stakeholders'],
-    steps: ['Profile', 'Clean', 'Analyze', 'Generate charts', 'Write insights'],
-    outputs: ['Cleaned CSV', 'Analysis findings', '3 charts (PNG)', 'Insights report'],
-    inputs: [
-      { key: 'file', label: 'Your data', type: 'file', placeholder: 'Paste CSV or JSON data here, or drag & drop a file…', hint: 'Supports CSV and JSON. Up to 25MB.', rows: 8 },
-      { key: 'question', label: 'What do you want to analyze? (optional)', type: 'text', placeholder: 'e.g. Correlation between age and salary', hint: 'Leave blank for automatic exploratory analysis.', rows: 2 },
     ],
     visual: true,
   },
@@ -47,25 +34,12 @@ const TOOLS = {
     tagline: 'Paste invoices + purchase orders → get a reconciliation report',
     description: 'Paste invoice text and your purchase order CSV. The agent extracts structured data from each invoice, matches them against POs, flags discrepancies, and generates a reconciliation report with charts.',
     useFor: ['Matching invoices to purchase orders', 'Flagging price/quantity discrepancies', 'Monthly AP reconciliation', 'Audit-ready reconciliation reports'],
+    theme: { accent: '38 95% 60%', accent2: '20 90% 55%', variant: 'paper', bg: 'radial-gradient(70% 55% at 50% 105%, hsl(38 95% 50% / 0.12), transparent 70%)' },
     steps: ['Extract text', 'Parse invoices', 'Reconcile vs POs', 'Generate report', 'Summarize'],
     outputs: ['Reconciliation report', 'Matched/unmatched lists', 'Discrepancy flags', 'Chart'],
     inputs: [
-      { key: 'documents', label: 'Invoice documents', type: 'text', placeholder: 'Paste invoice text here. Separate multiple invoices with ---DOCUMENT---', hint: 'Paste raw invoice text. Separate multiple with ---DOCUMENT---', rows: 10 },
-      { key: 'purchase_orders', label: 'Purchase orders (CSV)', type: 'text', placeholder: 'vendor,po_number,amount\nAcme Corp,PO-001,1500.00', hint: 'CSV with vendor, po_number, amount columns.', rows: 6 },
-    ],
-    visual: true,
-  },
-  'research-synthesizer': {
-    name: 'Research Synthesizer',
-    icon: 'search',
-    tagline: 'Paste 3-5 sources → get a cited research report with contradictions flagged',
-    description: 'Paste source texts. The agent extracts key claims from each, cross-references them, detects agreements and contradictions, and writes a cited research report with confidence scores.',
-    useFor: ['Comparing 3-5 articles or papers', 'Literature review synthesis', 'Detecting contradictions across sources', 'Cited research summaries'],
-    steps: ['Process sources', 'Extract claims', 'Cross-reference', 'Generate report', 'Summarize'],
-    outputs: ['Claims list', 'Agreements/contradictions', 'Confidence score', 'Cited report'],
-    inputs: [
-      { key: 'sources', label: 'Source texts', type: 'text', placeholder: 'Paste source texts here. Separate multiple with ---SOURCE---', hint: 'Paste 3-5 source texts. Separate with ---SOURCE---', rows: 12 },
-      { key: 'topic', label: 'Research topic (optional)', type: 'text', placeholder: 'e.g. Python vs JavaScript comparison', hint: 'What are you researching?', rows: 1 },
+      { key: 'documents', label: 'Invoice documents', type: 'file', multiple: true, filePrefix: '---DOCUMENT---\n', placeholder: 'Paste invoice text here, or drag & drop invoice files…', hint: 'One or more invoices. Drop up to 20 files.', rows: 10 },
+      { key: 'purchase_orders', label: 'Purchase orders (CSV)', type: 'file', multiple: true, placeholder: 'vendor,po_number,amount\nAcme Corp,PO-001,1500.00', hint: 'CSV with vendor, po_number, amount columns.', rows: 6 },
     ],
     visual: true,
   },
@@ -75,11 +49,12 @@ const TOOLS = {
     tagline: 'Upload metrics + events → get anomaly detection, root cause, and fix verification',
     description: 'Upload time-series metrics and event logs. The agent detects anomalies, correlates them with deploys/config changes, hypothesizes root cause, verifies a fix, and writes an incident report.',
     useFor: ['Post-incident root cause analysis', 'Correlating deploys with metric spikes', 'Anomaly detection in time-series', 'Generating incident reports'],
+    theme: { accent: '350 85% 66%', accent2: '20 90% 60%', variant: 'alert', bg: 'radial-gradient(60% 45% at 12% 8%, hsl(350 85% 60% / 0.16), transparent 60%)' },
     steps: ['Profile metrics', 'Detect anomalies', 'Correlate events', 'Hypothesize root cause', 'Verify fix', 'Write report'],
     outputs: ['Anomaly list', 'Root cause hypothesis', 'Fix verification', 'Incident report'],
     inputs: [
-      { key: 'metrics', label: 'Metrics CSV', type: 'file', placeholder: 'Paste metrics CSV here (timestamp,error_rate,latency_ms,cpu_pct)', hint: 'Time-series metrics. Include a timestamp column.', rows: 8 },
-      { key: 'events', label: 'Events CSV (optional)', type: 'file', placeholder: 'timestamp,event_type,description\n2024-01-01 03:02,deploy,Deploy #42 changed DB pool', hint: 'Deploys, config changes, alerts. One per line.', rows: 6 },
+      { key: 'metrics', label: 'Metrics CSV', type: 'file', multiple: true, placeholder: 'Paste metrics CSV here (timestamp,error_rate,latency_ms,cpu_pct)', hint: 'Time-series metrics. Include a timestamp column.', rows: 8 },
+      { key: 'events', label: 'Events CSV (optional)', type: 'file', multiple: true, placeholder: 'timestamp,event_type,description\n2024-01-01 03:02,deploy,Deploy #42 changed DB pool', hint: 'Deploys, config changes, alerts. One per line.', rows: 6 },
     ],
     visual: true,
   },
@@ -107,6 +82,8 @@ export default function ToolPage() {
   const [submitError, setSubmitError] = useState(null)
   const [visual, setVisual] = useState({ palette: 'aurora', chart_type: 'auto' })
   const [showHelp, setShowHelp] = useState(false)
+
+  const THEME = tool?.theme || { accent: '260 90% 72%', accent2: '165 80% 55%', variant: 'default' }
 
   useEffect(() => {
     let alive = true
@@ -199,7 +176,7 @@ export default function ToolPage() {
       variants={container}
       initial="hidden"
       animate="show"
-      className="mx-auto max-w-3xl space-y-6 pb-24 lg:pb-0"
+      className="mx-auto max-w-5xl space-y-6 pb-24 lg:pb-0"
     >
       {/* Header */}
       <motion.div variants={item}>
@@ -232,43 +209,11 @@ export default function ToolPage() {
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-2">{tool.description}</p>
       </motion.div>
 
-      {/* Pipeline preview */}
-      <motion.div variants={item}>
-        <div className="border border-line bg-surface/40 px-5 py-4">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ink-3">
-            <Icon name="pipeline" className="h-3.5 w-3.5 text-accent" strokeWidth={1.6} />
-            Pipeline
-          </div>
-          <ol className="mt-3 flex flex-wrap items-center gap-1.5">
-            {tool.steps.map((step, i) => (
-              <li key={step} className="flex items-center gap-1.5">
-                <span className="inline-flex items-center gap-1.5 border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink-2">
-                  <span className="font-mono text-[10px] text-accent/80">{String(i + 1).padStart(2, '0')}</span>
-                  {step}
-                </span>
-                {i < tool.steps.length - 1 ? (
-                  <Icon name="arrowRight" className="h-3 w-3 text-ink-3/60" strokeWidth={1.8} />
-                ) : null}
-              </li>
-            ))}
-          </ol>
-          <div className="mt-4 flex items-start gap-2">
-            <span className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-ink-3">You get</span>
-            <div className="flex flex-wrap gap-1.5">
-              {tool.outputs.map((out) => (
-                <span key={out} className="inline-flex items-center gap-1 border border-accent/25 bg-accent-soft px-2 py-0.5 text-xs font-medium text-ink-2">
-                  <span className="h-1 w-1 bg-accent" />
-                  {out}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Form */}
-      <motion.div variants={item}>
-        <Panel>
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        {/* Form column */}
+        <div className="lg:order-1">
+          <motion.div variants={item}>
+            <Panel>
           <div className="space-y-5 px-5 py-5">
             {tool.inputs.map((input) => {
               const id = `field-${toolId}-${input.key}`
@@ -287,6 +232,8 @@ export default function ToolPage() {
                       placeholder={input.placeholder}
                       hint={input.hint}
                       rows={input.rows}
+                      multiple={input.multiple}
+                      filePrefix={input.filePrefix}
                     />
                   ) : (
                     <>
@@ -417,10 +364,55 @@ export default function ToolPage() {
           </div>
         </Panel>
       </motion.div>
+        </div>
 
-      <motion.p variants={item} className="px-1 text-xs leading-relaxed text-ink-3">
-        Sandboxes enforce: no network, read-only filesystem, non-root user, resource limits, and teardown after every task.
-      </motion.p>
+        {/* Side rail */}
+        <aside className="space-y-4 lg:order-2">
+          <motion.div variants={item}>
+            <div className="border border-line bg-surface/40 px-5 py-4">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ink-3">
+                <Icon name="pipeline" className="h-3.5 w-3.5 text-accent" strokeWidth={1.6} />
+                Pipeline
+              </div>
+              <ol className="mt-3 space-y-2">
+                {tool.steps.map((step, i) => (
+                  <li key={step} className="flex items-start gap-2">
+                    <span className="mt-0.5 font-mono text-[10px] text-accent/80">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="text-xs font-medium text-ink-2">{step}</span>
+                  </li>
+                ))}
+              </ol>
+              <div className="mt-4">
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink-3">You get</span>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {tool.outputs.map((out) => (
+                    <span key={out} className="inline-flex items-center gap-1 border border-accent/25 bg-accent-soft px-2 py-0.5 text-xs font-medium text-ink-2">
+                      <span className="h-1 w-1 bg-accent" />
+                      {out}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div variants={item}>
+            <div className="border border-line bg-surface/40 px-5 py-4">
+              <p className="text-xs leading-relaxed text-ink-3">
+                Sandboxes enforce: no network, read-only filesystem, non-root user, resource limits, and teardown after every task.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowHelp(true)}
+                className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-accent transition-colors duration-fast ease-out hover:text-ink"
+              >
+                <span className="flex h-5 w-5 items-center justify-center border border-accent/40">?</span>
+                What is this tool for?
+              </button>
+            </div>
+          </motion.div>
+        </aside>
+      </div>
 
       {/* Help modal */}
       <AnimatePresence>

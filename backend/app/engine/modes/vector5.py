@@ -81,11 +81,12 @@ def _anomaly_prompt(task: Task, ctx: dict) -> str:
         f"PROFILE:\n{profile[:1000]}\n\n"
         "The script must:\n"
         "1. Read /workspace/metrics.csv with pandas\n"
-        "2. For each numeric metric, compute z-scores and flag values > 2.5 sigma\n"
-        "3. Also compute rolling mean +/- 2 std over a 5-point window\n"
+        "2. For each numeric metric, compute z-scores and flag values with |z| > 1.5\n"
+        "3. Also flag values outside rolling mean +/- 2 std over a 3-point window\n"
         "4. Identify: which metric, when (timestamp), value, expected, severity (z-score)\n"
         "5. Print: ANOMALY_JSON: {\"anomalies\": [{\"metric\": \"...\", \"timestamp\": \"...\", "
         "\"value\": N, \"expected\": N, \"severity\": N, \"direction\": \"spike|drop\"}]}\n"
+        "   (print an empty list if none found)\n"
         "6. Print debug to stderr only\n"
         "7. No network, no file writes outside /workspace\n\n"
         "Output ONLY raw Python code."
@@ -107,23 +108,48 @@ def _anomaly_files(task: Task, ctx: dict) -> dict:
 
 
 # ── Step 3: Correlate with events ────────────────────────────────────────────
+def _chart_prompt(task: Task, ctx: dict) -> str:
+    anomalies = ctx.get("detect_anomalies", {}).get("stdout", "")
+    return (
+        "You are a data visualization agent. Write a Python script that reads "
+        "/workspace/metrics.csv and creates a time-series chart highlighting the anomalies.\n\n"
+        f"ANOMALIES:\n{anomalies[:1500]}\n\n"
+        "The script must:\n"
+        "1. Read /workspace/metrics.csv with pandas\n"
+        "2. Plot each numeric metric (error_rate, latency_ms, cpu_pct) over time\n"
+        "3. Highlight anomaly timestamps with red markers\n"
+        "4. Save to /workspace/chart.png\n"
+        "5. Use `print(..., file=sys.stderr)` for debug; stdout stays clean\n"
+        "6. No network, no file writes outside /workspace\n\n"
+        "Output ONLY raw Python code."
+    )
+
+
+def _chart_verify(exec: ExecutionResult, ctx: dict) -> Verification:
+    if exec.exit_code != 0:
+        return Verification(ok=False, reason=f"chart exited {exec.exit_code}: {exec.stderr.strip()[-300:]}")
+    if "chart.png" not in exec.artifacts:
+        return Verification(ok=False, reason="chart.png artifact not produced")
+    return Verification(ok=True, reason="chart complete")
+
+
+def _chart_files(task: Task, ctx: dict) -> dict:
+    return {"metrics.csv": _extract_text(task, "metrics")}
+
+
 def _correlate_prompt(task: Task, ctx: dict) -> str:
     anomalies = ctx.get("detect_anomalies", {}).get("stdout", "")
     events = _extract_text(task, "events")
     return (
-        "You are a correlation agent. Write a Python script that matches each anomaly "
-        "to nearby events (deploys, config changes).\n\n"
+        "You are a correlation agent. Based on the anomalies and events below, "
+        "match each anomaly to nearby events (deploys, config changes) within +/- 30 minutes.\n\n"
         f"ANOMALIES:\n{anomalies[:2000]}\n\n"
         f"EVENTS:\n{events[:1500]}\n\n"
-        "The script must:\n"
-        "1. For each anomaly, find events within +/- 30 minutes\n"
-        "2. Compute correlation strength (time proximity + metric-event relationship)\n"
-        "3. Print: CORRELATION_JSON: {\"correlations\": [{\"anomaly\": {...}, "
+        "Output ONLY a JSON object (no code) of the form:\n"
+        "{\"correlations\": [{\"anomaly\": {\"metric\": \"...\", \"timestamp\": \"...\"}, "
         "\"correlated_events\": [{\"event\": \"...\", \"time\": \"...\", \"score\": 0.0}], "
-        "\"top_hypothesis\": \"...\"}]}\n"
-        "4. Print debug to stderr only\n"
-        "5. No network, no file writes outside /workspace\n\n"
-        "Output ONLY raw Python code."
+        "\"top_hypothesis\": \"...\"}], \"summary\": \"...\"}\n"
+        "If no anomalies were detected, return an empty correlations list and explain in summary."
     )
 
 
@@ -254,8 +280,10 @@ class Vector5Mode(PipelineModeBase):
              build_prompt=_profile_prompt, verify=_profile_verify, files=_profile_files, timeout_s=30),
         Step(name="detect_anomalies", system_prompt="You are an anomaly detection agent. Output ONLY raw Python code.",
              build_prompt=_anomaly_prompt, verify=_anomaly_verify, files=_anomaly_files, timeout_s=30),
-        Step(name="correlate", system_prompt="You are a correlation agent. Output ONLY raw Python code.",
-             build_prompt=_correlate_prompt, verify=_correlate_verify, files=_correlate_files, timeout_s=30),
+        Step(name="chart", system_prompt="You are a data visualization agent. Output ONLY raw Python code.",
+             build_prompt=_chart_prompt, verify=_chart_verify, files=_chart_files, timeout_s=30),
+        Step(name="correlate", system_prompt="You are a correlation agent. Output ONLY a JSON object.",
+             build_prompt=_correlate_prompt, verify=_correlate_verify, files=lambda t, c: {}, timeout_s=10, text_only=True),
         Step(name="hypothesize", system_prompt="You are a root-cause analyst. Output ONLY a JSON object.",
              build_prompt=_hypothesize_prompt, verify=_hypothesize_verify, files=_hypothesize_files, timeout_s=10, text_only=True),
         Step(name="verify_fix", system_prompt="You are a fix verification agent. Output ONLY a JSON object.",

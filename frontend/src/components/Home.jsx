@@ -13,22 +13,10 @@ const TOOLS = [
     featured: true,
   },
   {
-    id: 'data-pipeline',
-    label: 'Data Pipeline',
-    icon: 'pipeline',
-    blurb: 'Raw data → profile, clean, analyze, visualize, narrate. Full data science pipeline in one click.',
-  },
-  {
     id: 'invoice-reconciler',
     label: 'Invoice Reconciler',
     icon: 'document',
     blurb: 'Paste invoices + purchase orders → extract, match, flag discrepancies, generate reconciliation report.',
-  },
-  {
-    id: 'research-synthesizer',
-    label: 'Research Synthesizer',
-    icon: 'search',
-    blurb: 'Paste 3-5 sources → extract claims, cross-reference, detect contradictions → cited report.',
   },
   {
     id: 'incident-investigator',

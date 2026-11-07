@@ -180,6 +180,10 @@ class Orchestrator:
 
     def _sanitize_code(self, raw: str) -> str:
         text = (raw or "").strip()
+        import re
+        m = re.search(r"```(?:python)?\s*\n(.*?)\n```", text, re.DOTALL)
+        if m:
+            return m.group(1).strip()
         lines = text.splitlines()
         # Only strip a wrapping markdown fence: the first non-empty line must
         # start with ```. Code that merely contains backticks is left alone.
@@ -488,7 +492,7 @@ class Orchestrator:
                         prompt = prompt + "\n\nPrevious error:\n" + step_last_error + "\nFix the code accordingly."
 
                     system_prompt = getattr(step, "system_prompt", None)
-                    max_tokens = getattr(step, "max_tokens", 2048)
+                    max_tokens = getattr(step, "max_tokens", 3072)
 
                     if is_text_only:
                         result_text = self._llm.generate(prompt, system=system_prompt, max_tokens=max_tokens)
@@ -521,6 +525,22 @@ class Orchestrator:
                         }
                         context[f"{step_name}_summary"] = (result_text or "")[:120]
                         step_succeeded = True
+                        # Persist text-only results as downloadable artifacts so the
+                        # UI always has something to show (e.g. incident reports).
+                        try:
+                            import json as _json
+                            _adir = Path("data/artifacts") / task.id
+                            _adir.mkdir(parents=True, exist_ok=True)
+                            try:
+                                _json.loads(result_text or "")
+                                _afname = f"{step_name}.json"
+                            except (ValueError, TypeError):
+                                _afname = f"{step_name}.txt"
+                            (_adir / _afname).write_text(result_text or "", encoding="utf-8")
+                            if _afname not in artifacts:
+                                artifacts.append(_afname)
+                        except Exception:
+                            pass
                         yield RunResult(
                             task_id=task.id,
                             status="running",

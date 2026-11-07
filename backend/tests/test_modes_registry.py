@@ -12,7 +12,7 @@ from backend.app.engine.modes import MODE_REGISTRY
 from backend.app.engine.orchestrator import Task
 from backend.app.sandbox.manager import ExecutionResult
 
-EXPECTED_MODES = {"csv", "coder", "chart", "fix", "data-analyst", "invoice-reconciler", "research-synthesizer", "incident-investigator", "data-pipeline"}
+EXPECTED_MODES = {"csv", "coder", "chart", "fix", "data-analyst", "invoice-reconciler", "incident-investigator"}
 
 
 def _task(mode: str, inputs: dict) -> Task:
@@ -47,9 +47,7 @@ def test_all_modes_build_prompts():
         "fix": {"file": "x = 1\n", "desired": "x == 2"},
         "data-analyst": {"file": "a,b\n1,2\n", "question": "sum"},
         "invoice-reconciler": {"documents": "invoice text", "purchase_orders": "vendor,amount\nAcme,100\n"},
-        "research-synthesizer": {"sources": "https://example.com", "topic": "test topic"},
         "incident-investigator": {"metrics": "timestamp,val\n2024-01-01,1\n", "events": "timestamp,event\n2024-01-01,deploy\n"},
-        "data-pipeline": {"file": "a,b\n1,2\n", "question": "sum"},
     }
     for name, cls in MODE_REGISTRY.items():
         instance = cls()

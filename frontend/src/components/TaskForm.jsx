@@ -39,18 +39,6 @@ const MODES = [
     fileHint: 'Supports CSV and JSON. Up to 25MB.',
   },
   {
-    id: 'data-pipeline',
-    label: 'Data Pipeline',
-    glyph: '🧹',
-    blurb: 'Raw data → profile, clean, analyze, visualize, narrate. Full data science pipeline in one click.',
-    steps: ['Profile', 'Clean', 'Analyze', 'Generate charts', 'Write insights'],
-    outputs: ['Cleaned CSV', 'Analysis findings', '3 charts (PNG)', 'Insights report'],
-    fileKey: 'file',
-    fileLabel: 'CSV or JSON data',
-    filePlaceholder: 'Paste your CSV or JSON data here, or choose a file…',
-    fileHint: 'Supports CSV and JSON. Up to 25MB.',
-  },
-  {
     id: 'invoice-reconciler',
     label: 'Invoice Reconciler',
     glyph: '📄',
@@ -309,7 +297,7 @@ export default function TaskForm() {
     ([key]) => !['palette', 'chart_type'].includes(key),
   )
   const activeMeta = MODES.find((m) => m.id === mode) || { label: mode, glyph: '◆', blurb: '' }
-  const showVisual = mode === 'data-analyst' || mode === 'data-pipeline' || mode === 'incident-investigator'
+  const showVisual = mode === 'data-analyst' || mode === 'incident-investigator'
   const visual = { palette: inputs.palette || 'aurora', chart_type: inputs.chart_type || 'auto' }
   const example = EXAMPLES[mode]
 

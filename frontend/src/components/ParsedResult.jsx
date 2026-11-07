@@ -41,7 +41,7 @@ function ResultTable({ rows }) {
   if (!Array.isArray(rows) || rows.length === 0) return null
   const headers = Object.keys(rows[0])
   return (
-    <div className="max-h-72 overflow-auto border border-line">
+    <div className="max-h-[50vh] overflow-auto border border-line">
       <table className="min-w-max w-full border-collapse text-sm">
         <thead className="sticky top-0 z-10">
           <tr className="bg-surface-2">
